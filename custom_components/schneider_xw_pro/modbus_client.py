@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import struct
 from typing import Any
@@ -30,6 +31,7 @@ class SchneiderModbusClient:
         self._timeout = timeout
         self._delay = delay
         self._client: AsyncModbusTcpClient | None = None
+        self._lock = asyncio.Lock()
 
     @property
     def host(self) -> str:
@@ -92,51 +94,52 @@ class SchneiderModbusClient:
         slave_id: int,
     ) -> Any:
         """Read a single register value from a device."""
-        if not self.connected:
-            if not await self.connect():
-                return None
+        async with self._lock:
+            if not self.connected:
+                if not await self.connect():
+                    return None
 
-        try:
-            if register.register_type == RegisterType.INPUT:
-                result = await self._client.read_input_registers(
-                    address=register.address,
-                    count=register.count,
-                    slave=slave_id,
-                )
-            else:
-                result = await self._client.read_holding_registers(
-                    address=register.address,
-                    count=register.count,
-                    slave=slave_id,
-                )
+            try:
+                if register.register_type == RegisterType.INPUT:
+                    result = await self._client.read_input_registers(
+                        address=register.address,
+                        count=register.count,
+                        slave=slave_id,
+                    )
+                else:
+                    result = await self._client.read_holding_registers(
+                        address=register.address,
+                        count=register.count,
+                        slave=slave_id,
+                    )
 
-            if result.isError():
+                if result.isError():
+                    _LOGGER.warning(
+                        "Error reading register %s (addr=%d) from slave %d: %s",
+                        register.key,
+                        register.address,
+                        slave_id,
+                        result,
+                    )
+                    return None
+
+                return self._decode_value(register, result.registers)
+
+            except ModbusException as exc:
                 _LOGGER.warning(
-                    "Error reading register %s (addr=%d) from slave %d: %s",
+                    "Modbus exception reading %s from slave %d: %s",
                     register.key,
-                    register.address,
                     slave_id,
-                    result,
+                    exc,
                 )
                 return None
-
-            return self._decode_value(register, result.registers)
-
-        except ModbusException as exc:
-            _LOGGER.warning(
-                "Modbus exception reading %s from slave %d: %s",
-                register.key,
-                slave_id,
-                exc,
-            )
-            return None
-        except Exception:
-            _LOGGER.exception(
-                "Unexpected error reading %s from slave %d",
-                register.key,
-                slave_id,
-            )
-            return None
+            except Exception:
+                _LOGGER.exception(
+                    "Unexpected error reading %s from slave %d",
+                    register.key,
+                    slave_id,
+                )
+                return None
 
     async def write_register(
         self,
@@ -149,59 +152,60 @@ class SchneiderModbusClient:
             _LOGGER.error("Register %s is not writable", register.key)
             return False
 
-        if not self.connected:
-            if not await self.connect():
-                return False
+        async with self._lock:
+            if not self.connected:
+                if not await self.connect():
+                    return False
 
-        try:
-            encoded = self._encode_value(register, value)
+            try:
+                encoded = self._encode_value(register, value)
 
-            if register.count == 1:
-                result = await self._client.write_register(
-                    address=register.address,
-                    value=encoded[0],
-                    slave=slave_id,
-                )
-            else:
-                result = await self._client.write_registers(
-                    address=register.address,
-                    values=encoded,
-                    slave=slave_id,
-                )
+                if register.count == 1:
+                    result = await self._client.write_register(
+                        address=register.address,
+                        value=encoded[0],
+                        slave=slave_id,
+                    )
+                else:
+                    result = await self._client.write_registers(
+                        address=register.address,
+                        values=encoded,
+                        slave=slave_id,
+                    )
 
-            if result.isError():
-                _LOGGER.error(
-                    "Error writing register %s (addr=%d) on slave %d: %s",
+                if result.isError():
+                    _LOGGER.error(
+                        "Error writing register %s (addr=%d) on slave %d: %s",
+                        register.key,
+                        register.address,
+                        slave_id,
+                        result,
+                    )
+                    return False
+
+                _LOGGER.debug(
+                    "Successfully wrote %s=%s to slave %d",
                     register.key,
-                    register.address,
+                    value,
                     slave_id,
-                    result,
+                )
+                return True
+
+            except ModbusException as exc:
+                _LOGGER.error(
+                    "Modbus exception writing %s to slave %d: %s",
+                    register.key,
+                    slave_id,
+                    exc,
                 )
                 return False
-
-            _LOGGER.debug(
-                "Successfully wrote %s=%s to slave %d",
-                register.key,
-                value,
-                slave_id,
-            )
-            return True
-
-        except ModbusException as exc:
-            _LOGGER.error(
-                "Modbus exception writing %s to slave %d: %s",
-                register.key,
-                slave_id,
-                exc,
-            )
-            return False
-        except Exception:
-            _LOGGER.exception(
-                "Unexpected error writing %s to slave %d",
-                register.key,
-                slave_id,
-            )
-            return False
+            except Exception:
+                _LOGGER.exception(
+                    "Unexpected error writing %s to slave %d",
+                    register.key,
+                    slave_id,
+                )
+                return False
 
     async def read_all_registers(
         self,

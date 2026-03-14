@@ -72,7 +72,6 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 connected = await client.connect()
                 if connected:
-                    await client.disconnect()
                     return await self.async_step_devices()
                 errors["base"] = "cannot_connect"
             except Exception:

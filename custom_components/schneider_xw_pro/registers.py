@@ -16,7 +16,6 @@ from enum import Enum
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.components.number import NumberDeviceClass
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricCurrent,
@@ -1334,13 +1333,14 @@ SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = []
 # REGISTER MAPS BY DEVICE TYPE
 # =============================================================================
 
-from .const import (
-    DEVICE_TYPE_XW_PRO,
-    DEVICE_TYPE_MPPT,
+# Imported here to avoid circular imports (const.py has no dependencies on this file)
+from .const import (  # noqa: E402
     DEVICE_TYPE_AGS,
     DEVICE_TYPE_BATTERY_MONITOR,
     DEVICE_TYPE_GATEWAY,
+    DEVICE_TYPE_MPPT,
     DEVICE_TYPE_SCP,
+    DEVICE_TYPE_XW_PRO,
 )
 
 SENSOR_REGISTERS_BY_DEVICE: dict[str, list[ModbusRegisterDefinition]] = {

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -67,8 +66,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             scan_interval=scan_interval,
         )
 
-        # Initial data fetch
-        await coordinator.async_config_entry_first_refresh()
+        # Initial data fetch - continue setup even if a device is temporarily offline
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except Exception:
+            _LOGGER.warning(
+                "Failed initial data fetch for %s (slave %d), will retry on next poll",
+                device_name,
+                slave_id,
+            )
 
         # Key by "type_slaveId" for unique identification
         coordinator_key = f"{device_type}_{slave_id}"

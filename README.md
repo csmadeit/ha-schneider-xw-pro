@@ -100,9 +100,30 @@ homeassistant-modules/
 - Hardware testing with actual Conext Gateway/InsightHome
 - Verification of exact Modbus register addresses against physical hardware
 - Fine-tuning of register scales, offsets, and data types based on actual device responses
-- Edge case handling (device offline, gateway restart, communication errors)
 - InsightCloud API integration (Phase 4 — API docs not publicly available)
 - Additional device types if discovered during testing
+
+---
+
+## Audit Log
+
+### Audit 1 — 2026-03-14
+
+**Findings & Fixes:**
+
+| # | Severity | Issue | Fix |
+|---|----------|-------|-----|
+| 1 | CRITICAL | No asyncio.Lock on shared Modbus client — concurrent coordinator polls could corrupt TCP stream | Added `asyncio.Lock` around all `read_register` and `write_register` calls |
+| 2 | BUG | Double `disconnect()` in config_flow on success path (called explicitly then again in `finally`) | Removed redundant early `disconnect()`, rely on `finally` block only |
+| 3 | BUG | `select.py` missed 2-option non-binary registers (e.g. keys {0, 2}) — fell through both switch and select filters | Changed filter to "writable + has options + NOT binary {0,1}" instead of "> 2 options" |
+| 4 | CODE | Unused `from typing import Any` in `__init__.py` | Removed |
+| 5 | CODE | Unused `callback` import in `select.py` and `number.py` | Removed |
+| 6 | CODE | Unused `NumberDeviceClass` import in `registers.py` | Removed |
+| 7 | CODE | `registers.py` bottom-of-file import not annotated | Added `# noqa: E402` and explanatory comment, sorted alphabetically |
+| 8 | IMPROVEMENT | `hacs.json` had `zip_release: true` with no CI to produce zips | Removed `zip_release` and `filename` fields |
+| 9 | IMPROVEMENT | If any device fails initial Modbus poll, entire integration setup fails | Wrapped `async_config_entry_first_refresh()` in try/except — logs warning, retries on next poll |
+
+**No security issues found.** No hardcoded secrets, no credential exposure, proper input validation via voluptuous schemas.
 
 ---
 

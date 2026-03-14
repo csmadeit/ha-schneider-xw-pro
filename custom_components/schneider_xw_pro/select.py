@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -38,11 +38,12 @@ async def async_setup_entry(
 
     for coordinator_key, coordinator in coordinators.items():
         for register in coordinator.control_registers:
-            # Create selects for writable registers with >2 options (not binary switches)
+            # Create selects for writable registers with options that aren't
+            # simple binary {0, 1} switches
             if (
                 register.writable
                 and register.options
-                and len(register.options) > 2
+                and not (set(register.options.keys()) == {0, 1})
             ):
                 entities.append(
                     SchneiderSelectEntity(
