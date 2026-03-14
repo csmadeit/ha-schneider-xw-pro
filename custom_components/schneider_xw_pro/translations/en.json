@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Schneider Conext Gateway",
+        "description": "Enter the IP address and port of your Conext Gateway, InsightHome, or InsightFacility device. Default port is 503 for InsightHome/InsightFacility, 502 for ComBox.",
+        "data": {
+          "host": "Host / IP Address",
+          "port": "Port",
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      },
+      "devices": {
+        "title": "Add a Device",
+        "description": "Add a Schneider Conext device connected to your Gateway. Each device requires a device type and its Modbus slave address.",
+        "data": {
+          "device_type": "Device Type",
+          "device_name": "Device Name (optional)",
+          "slave_id": "Modbus Slave Address"
+        }
+      },
+      "add_another": {
+        "title": "Add Another Device?",
+        "description": "You have configured {device_count} device(s). Would you like to add another?",
+        "data": {
+          "add_another": "Add another device"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the Schneider Gateway. Please check the host and port.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Schneider XW Pro Options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    }
+  }
+}
