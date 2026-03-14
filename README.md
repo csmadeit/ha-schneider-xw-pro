@@ -1,93 +1,126 @@
-# homeassistant-modules
+# Home Assistant Modules
 
+Third-party Home Assistant custom integration modules maintained by MadeIT.
 
+## Modules
 
-## Getting started
+### Schneider Electric Conext XW Pro (`schneider_xw_pro`)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+A full HACS-compatible custom integration for the Schneider Electric Conext XW Pro solar inverter/charger ecosystem. Supports **read and write** Modbus TCP operations through the Conext Gateway / InsightHome / InsightFacility.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+**Status:** Initial implementation complete — ready for hardware testing.
 
-## Add your files
+---
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Session Details
+
+- **Created by:** Chris S (@csmadeit) via Devin AI
+- **Session:** [Devin Session](https://app.devin.ai/sessions/4503fa9209474d858e2a17c069e0e1ef)
+- **Repository:** [gitlab.cmhtransfer.com/ai-test/homeassistant-modules](https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules)
+- **Date:** 2026-03-14
+
+---
+
+## Schneider XW Pro Integration — Files Created
+
+### Backend (Integration Core)
+
+| File | Purpose |
+|------|---------|
+| `custom_components/schneider_xw_pro/__init__.py` | Integration setup, config entry handling, multi-device coordinator init |
+| `custom_components/schneider_xw_pro/const.py` | Constants: domain, device types, default slave addresses, config keys |
+| `custom_components/schneider_xw_pro/manifest.json` | HACS manifest with metadata and pymodbus dependency |
+| `custom_components/schneider_xw_pro/config_flow.py` | UI config flow for gateway connection + multi-device setup |
+| `custom_components/schneider_xw_pro/coordinator.py` | DataUpdateCoordinator per device — polls Modbus registers |
+| `custom_components/schneider_xw_pro/modbus_client.py` | pymodbus async TCP client wrapper with read/write/encode/decode |
+| `custom_components/schneider_xw_pro/registers.py` | Complete Modbus register definitions for all device types |
+
+### Entity Platforms (UI)
+
+| File | Purpose |
+|------|---------|
+| `custom_components/schneider_xw_pro/sensor.py` | Read-only sensor entities (voltage, current, power, SOC, energy, etc.) |
+| `custom_components/schneider_xw_pro/switch.py` | On/off switches (inverter enable, charger enable, search mode, etc.) |
+| `custom_components/schneider_xw_pro/select.py` | Select entities for mode controls (charge mode, AC input mode, EPC mode) |
+| `custom_components/schneider_xw_pro/number.py` | Number entities for setpoints (voltage, current limits) |
+
+### Configuration & Translations
+
+| File | Purpose |
+|------|---------|
+| `custom_components/schneider_xw_pro/strings.json` | Config flow strings |
+| `custom_components/schneider_xw_pro/translations/en.json` | English translations |
+| `hacs.json` | HACS repository metadata |
+
+---
+
+## Module Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules.git
-git branch -M main
-git push -uf origin main
+homeassistant-modules/
+├── README.md                          # This file
+├── SPECIFICATION.md                   # Full module specification
+├── hacs.json                          # HACS repo config
+└── custom_components/
+    └── schneider_xw_pro/
+        ├── __init__.py                # Integration setup
+        ├── const.py                   # Constants & defaults
+        ├── manifest.json              # HA manifest
+        ├── config_flow.py             # UI config flow
+        ├── coordinator.py             # Data update coordinator
+        ├── modbus_client.py           # Modbus TCP client
+        ├── registers.py               # Register definitions (all devices)
+        ├── sensor.py                  # Sensor entities
+        ├── switch.py                  # Switch entities
+        ├── select.py                  # Select entities
+        ├── number.py                  # Number entities
+        ├── strings.json               # UI strings
+        └── translations/
+            └── en.json                # English translations
 ```
 
-## Integrate with your tools
+---
 
-* [Set up project integrations](https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules/-/settings/integrations)
+## What's Ready vs What Needs Implementation
 
-## Collaborate with your team
+### Ready (Implemented)
+- Full HACS-compatible integration structure
+- Config flow with multi-device support (gateway IP, port, slave addresses)
+- Modbus TCP client with async read/write support (pymodbus)
+- Register definitions for XW Pro, MPPT, AGS, Battery Monitor, Gateway, SCP
+- Sensor entities for all input registers (voltage, current, power, SOC, energy, temperature, status)
+- Switch entities for binary controls (inverter/charger/search mode/grid support enable/disable)
+- Select entities for mode controls (charge mode, AC input mode, EPC mode)
+- Number entities for setpoints (absorb/float voltage, max charge current, grid support voltage, LBCO, EPC power)
+- Device registry integration (each device appears separately in HA)
+- Energy dashboard compatible sensors (state_class: total_increasing)
+- Options flow for scan interval adjustment
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Needs Testing / Refinement
+- Hardware testing with actual Conext Gateway/InsightHome
+- Verification of exact Modbus register addresses against physical hardware
+- Fine-tuning of register scales, offsets, and data types based on actual device responses
+- Edge case handling (device offline, gateway restart, communication errors)
+- InsightCloud API integration (Phase 4 — API docs not publicly available)
+- Additional device types if discovered during testing
 
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### HACS (Recommended)
+1. Open HACS in Home Assistant
+2. Go to **Integrations** -> **Custom Repositories**
+3. Add this repository URL
+4. Install **Schneider Electric Conext XW Pro**
+5. Restart Home Assistant
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Manual
+1. Copy `custom_components/schneider_xw_pro/` to your HA `custom_components/` directory
+2. Restart Home Assistant
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Configuration
+1. Go to **Settings** -> **Devices & Services** -> **Add Integration**
+2. Search for "Schneider Electric Conext XW Pro"
+3. Enter your Gateway/InsightHome IP and port (default: 503)
+4. Add each device (inverter, MPPT, AGS, etc.) with its Modbus slave address
