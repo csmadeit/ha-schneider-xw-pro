@@ -93,9 +93,7 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         value: Any,
     ) -> bool:
         """Write a value to a register and refresh data."""
-        success = await self.client.write_register(
-            register, self.slave_id, value
-        )
+        success = await self.client.write_register(register, self.slave_id, value)
         if success:
             # Refresh data after write
             await self.async_request_refresh()

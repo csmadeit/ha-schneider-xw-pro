@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -84,11 +84,16 @@ class SchneiderSwitchEntity(
 
         self._attr_device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}")
+                (
+                    DOMAIN,
+                    f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}",
+                )
             },
             name=coordinator.device_name,
             manufacturer=MANUFACTURER,
-            model=DEVICE_TYPE_LABELS.get(coordinator.device_type, coordinator.device_type),
+            model=DEVICE_TYPE_LABELS.get(
+                coordinator.device_type, coordinator.device_type
+            ),
             via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
@@ -116,4 +121,6 @@ class SchneiderSwitchEntity(
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        return (
+            self.coordinator.last_update_success and self.coordinator.data is not None
+        )

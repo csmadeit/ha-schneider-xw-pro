@@ -9,9 +9,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_DEVICES,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TYPE,
+    CONF_DEVICES,
     CONF_HOST,
     CONF_PORT,
     CONF_SCAN_INTERVAL,

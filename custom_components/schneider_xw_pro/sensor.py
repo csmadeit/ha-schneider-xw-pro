@@ -6,9 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
-    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -94,11 +92,16 @@ class SchneiderSensorEntity(
         # Device info for device registry
         self._attr_device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}")
+                (
+                    DOMAIN,
+                    f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}",
+                )
             },
             name=coordinator.device_name,
             manufacturer=MANUFACTURER,
-            model=DEVICE_TYPE_LABELS.get(coordinator.device_type, coordinator.device_type),
+            model=DEVICE_TYPE_LABELS.get(
+                coordinator.device_type, coordinator.device_type
+            ),
             via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
