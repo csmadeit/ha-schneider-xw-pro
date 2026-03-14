@@ -4,9 +4,9 @@
   "codeowners": ["@csmadeit"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/csecs/ha-schneider-xw-pro",
+  "documentation": "https://github.com/csmadeit/ha-schneider-xw-pro",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/csecs/ha-schneider-xw-pro/issues",
+  "issue_tracker": "https://github.com/csmadeit/ha-schneider-xw-pro/issues",
   "requirements": ["pymodbus>=3.6.0"],
   "version": "1.0.0"
 }
