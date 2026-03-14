@@ -60,6 +60,11 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
             )
 
+            # Prevent duplicate entries for the same gateway
+            unique_id = f"schneider_xw_pro_{self._host}_{self._port}"
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
+
             # Test connection
             client = SchneiderModbusClient(self._host, self._port)
             try:
@@ -112,13 +117,11 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             # Ask if they want to add more devices
             return await self.async_step_add_another()
 
-        device_type_options = {k: v for k, v in DEVICE_TYPE_LABELS.items()}
-
         return self.async_show_form(
             step_id="devices",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_DEVICE_TYPE): vol.In(device_type_options),
+                    vol.Required(CONF_DEVICE_TYPE): vol.In(DEVICE_TYPE_LABELS),
                     vol.Optional(CONF_DEVICE_NAME, default=""): str,
                     vol.Optional(CONF_SLAVE_ID, default=10): vol.Coerce(int),
                 }
