@@ -11,9 +11,8 @@ Based on official Schneider Electric Modbus Maps:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
@@ -30,12 +29,14 @@ from homeassistant.const import (
 
 class RegisterType(Enum):
     """Modbus register type."""
+
     INPUT = "input"
     HOLDING = "holding"
 
 
 class DataType(Enum):
     """Modbus data type."""
+
     UINT16 = "uint16"
     INT16 = "int16"
     UINT32 = "uint32"
@@ -47,6 +48,7 @@ class DataType(Enum):
 @dataclass
 class ModbusRegisterDefinition:
     """Definition of a single Modbus register."""
+
     name: str
     key: str
     address: int

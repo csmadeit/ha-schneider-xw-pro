@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
@@ -22,13 +21,7 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE_ADDRESSES,
-    DEVICE_TYPE_AGS,
-    DEVICE_TYPE_BATTERY_MONITOR,
-    DEVICE_TYPE_GATEWAY,
     DEVICE_TYPE_LABELS,
-    DEVICE_TYPE_MPPT,
-    DEVICE_TYPE_SCP,
-    DEVICE_TYPE_XW_PRO,
     DOMAIN,
 )
 from .modbus_client import SchneiderModbusClient

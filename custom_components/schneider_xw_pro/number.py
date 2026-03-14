@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
@@ -97,11 +96,16 @@ class SchneiderNumberEntity(
 
         self._attr_device_info = DeviceInfo(
             identifiers={
-                (DOMAIN, f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}")
+                (
+                    DOMAIN,
+                    f"{entry.entry_id}_{coordinator.device_type}_{coordinator.slave_id}",
+                )
             },
             name=coordinator.device_name,
             manufacturer=MANUFACTURER,
-            model=DEVICE_TYPE_LABELS.get(coordinator.device_type, coordinator.device_type),
+            model=DEVICE_TYPE_LABELS.get(
+                coordinator.device_type, coordinator.device_type
+            ),
             via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
@@ -122,4 +126,6 @@ class SchneiderNumberEntity(
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        return (
+            self.coordinator.last_update_success and self.coordinator.data is not None
+        )
