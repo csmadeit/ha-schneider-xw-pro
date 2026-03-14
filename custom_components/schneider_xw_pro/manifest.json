@@ -1,0 +1,12 @@
+{
+  "domain": "schneider_xw_pro",
+  "name": "Schneider Electric Conext XW Pro",
+  "codeowners": ["@csmadeit"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules/-/issues",
+  "requirements": ["pymodbus>=3.6.0"],
+  "version": "1.0.0"
+}
