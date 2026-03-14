@@ -100,6 +100,7 @@ class SchneiderModbusClient:
                     return None
 
             try:
+                assert self._client is not None
                 if register.register_type == RegisterType.INPUT:
                     result = await self._client.read_input_registers(
                         address=register.address,
@@ -158,6 +159,7 @@ class SchneiderModbusClient:
                     return False
 
             try:
+                assert self._client is not None
                 encoded = self._encode_value(register, value)
 
                 if register.count == 1:
@@ -230,8 +232,9 @@ class SchneiderModbusClient:
         self,
         register: ModbusRegisterDefinition,
         raw_registers: list[int],
-    ) -> Any:
+    ) -> int | float | str:
         """Decode raw Modbus register values into a Python value."""
+        value: int | float
         if register.data_type == DataType.UINT16:
             value = raw_registers[0]
         elif register.data_type == DataType.INT16:
@@ -248,12 +251,11 @@ class SchneiderModbusClient:
             packed = struct.pack(">HH", raw_registers[0], raw_registers[1])
             value = struct.unpack(">f", packed)[0]
         elif register.data_type == DataType.STRING:
-            chars = []
+            chars: list[str] = []
             for reg in raw_registers:
                 chars.append(chr((reg >> 8) & 0xFF))
                 chars.append(chr(reg & 0xFF))
-            value = "".join(chars).strip("\x00").strip()
-            return value
+            return "".join(chars).strip("\x00").strip()
         else:
             value = raw_registers[0]
 
