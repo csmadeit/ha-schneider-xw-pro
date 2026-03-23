@@ -182,84 +182,74 @@ class SchneiderModbusClient:
         registers: list[ModbusRegisterDefinition],
         slave_id: int,
     ) -> dict[str, Any]:
-        """Read all registers using pyModbusTCP auto_open/auto_close.
+        """Read all registers using efficient block reads.
 
-        Each individual register read opens a fresh TCP connection, reads,
-        then closes -- exactly matching the proven conext-api approach.
-        A 0.1 s delay between reads lets the gateway recover.
+        Groups consecutive registers into blocks and reads each block in a
+        single Modbus request.  This dramatically reduces TCP connections
+        (from 100+ to ~10) which is critical for the Schneider Gateway's
+        embedded TCP stack.  Falls back to individual register reads if a
+        block read fails.
         """
         def _read_all() -> dict[str, Any]:
             data: dict[str, Any] = {}
-            client = ModbusClient(
-                host=self._host, port=self._port,
-                auto_open=True, auto_close=True,
-                unit_id=slave_id, timeout=self._timeout,
-            )
+            blocks = self._group_into_blocks(registers)
 
             _LOGGER.debug(
-                "read_all_registers_fresh: reading %d registers from slave %d",
-                len(registers), slave_id,
+                "read_all_registers_fresh: reading %d registers in %d "
+                "block(s) from slave %d",
+                len(registers), len(blocks), slave_id,
             )
 
-            for register in registers:
-                try:
-                    regs = None
-                    for attempt in range(_MAX_RETRIES):
-                        if register.register_type == RegisterType.INPUT:
-                            regs = client.read_input_registers(
-                                register.address, register.count,
-                            )
-                        else:
-                            regs = client.read_holding_registers(
-                                register.address, register.count,
-                            )
-                        if regs is not None:
-                            break
-                        # Back off before retry
-                        if attempt < _MAX_RETRIES - 1:
-                            _LOGGER.debug(
-                                "read_all_registers_fresh: retry %d for %s "
-                                "(addr=0x%04X) from slave %d",
-                                attempt + 1, register.key,
-                                register.address, slave_id,
-                            )
-                            time.sleep(_RETRY_DELAY)
+            for start_addr, total_count, block_regs in blocks:
+                client = ModbusClient(
+                    host=self._host, port=self._port,
+                    auto_open=True, auto_close=True,
+                    unit_id=slave_id, timeout=self._timeout,
+                )
 
-                    if regs is None:
-                        _LOGGER.debug(
-                            "read_all_registers_fresh: no response for %s "
-                            "(addr=0x%04X) from slave %d after %d attempts",
-                            register.key, register.address, slave_id,
-                            _MAX_RETRIES,
+                # --- Try block read first ---
+                raw_block = None
+                for attempt in range(_MAX_RETRIES):
+                    if block_regs[0].register_type == RegisterType.INPUT:
+                        raw_block = client.read_input_registers(
+                            start_addr, total_count,
                         )
                     else:
-                        try:
-                            value = self._decode_value(register, regs)
-                        except Exception:
-                            _LOGGER.debug(
-                                "read_all_registers_fresh: decode error for %s "
-                                "from slave %d",
-                                register.key, slave_id, exc_info=True,
-                            )
-                            value = None
+                        raw_block = client.read_holding_registers(
+                            start_addr, total_count,
+                        )
+                    if raw_block is not None:
+                        break
+                    if attempt < _MAX_RETRIES - 1:
+                        _LOGGER.debug(
+                            "Block read retry %d for 0x%04X..0x%04X "
+                            "from slave %d (last_error=%s, last_except=%s)",
+                            attempt + 1, start_addr,
+                            start_addr + total_count - 1, slave_id,
+                            client.last_error, client.last_except,
+                        )
+                        time.sleep(_RETRY_DELAY)
 
-                        if value is not None:
-                            if register.options and isinstance(value, (int, float)):
-                                int_val = int(value)
-                                data[register.key] = register.options.get(
-                                    int_val, str(int_val)
-                                )
-                                data[f"{register.key}_raw"] = int_val
-                            else:
-                                data[register.key] = value
-                except Exception:
+                if raw_block is not None and len(raw_block) >= total_count:
+                    # Block read succeeded — extract individual values
+                    for register in block_regs:
+                        offset = register.address - start_addr
+                        reg_raw = raw_block[offset : offset + register.count]
+                        self._store_decoded(data, register, reg_raw)
+                else:
+                    # Block read failed — fall back to individual reads
                     _LOGGER.debug(
-                        "read_all_registers_fresh: unexpected error reading %s "
-                        "from slave %d",
-                        register.key, slave_id, exc_info=True,
+                        "Block read failed for 0x%04X..0x%04X from "
+                        "slave %d (last_error=%s, last_except=%s); "
+                        "falling back to individual reads",
+                        start_addr, start_addr + total_count - 1,
+                        slave_id, client.last_error, client.last_except,
+                    )
+                    self._read_individually(
+                        data, block_regs, slave_id,
                     )
 
-                # Delay between reads -- matches conext-api sleep(0.1)
+                # Delay between blocks
                 time.sleep(_READ_DELAY)
 
             _LOGGER.debug(
@@ -269,6 +259,127 @@ class SchneiderModbusClient:
             return data
 
         return await asyncio.to_thread(_read_all)
+
+    # ------------------------------------------------------------------
+    # Block-read helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _group_into_blocks(
+        registers: list[ModbusRegisterDefinition],
+        max_gap: int = 10,
+        max_block_size: int = 100,
+    ) -> list[tuple[int, int, list[ModbusRegisterDefinition]]]:
+        """Group registers into contiguous blocks for efficient reads.
+
+        Returns ``(start_address, total_register_count, register_list)``
+        tuples.  Adjacent registers (with gaps up to *max_gap* unused
+        positions) are merged into a single block.  Each block reads at
+        most *max_block_size* Modbus registers.  Only registers of the
+        same type (INPUT / HOLDING) are grouped together.
+        """
+        if not registers:
+            return []
+
+        by_type: dict[RegisterType, list[ModbusRegisterDefinition]] = {}
+        for reg in registers:
+            by_type.setdefault(reg.register_type, []).append(reg)
+
+        blocks: list[tuple[int, int, list[ModbusRegisterDefinition]]] = []
+
+        for _rtype, regs in by_type.items():
+            sorted_regs = sorted(regs, key=lambda r: r.address)
+            current: list[ModbusRegisterDefinition] = [sorted_regs[0]]
+
+            for reg in sorted_regs[1:]:
+                cur_end = max(r.address + r.count for r in current)
+                gap = reg.address - cur_end
+                new_size = (reg.address + reg.count) - current[0].address
+
+                if gap <= max_gap and new_size <= max_block_size:
+                    current.append(reg)
+                else:
+                    start = current[0].address
+                    end = max(r.address + r.count for r in current)
+                    blocks.append((start, end - start, current))
+                    current = [reg]
+
+            start = current[0].address
+            end = max(r.address + r.count for r in current)
+            blocks.append((start, end - start, current))
+
+        blocks.sort(key=lambda b: b[0])
+        return blocks
+
+    def _store_decoded(
+        self,
+        data: dict[str, Any],
+        register: ModbusRegisterDefinition,
+        raw_registers: list[int],
+    ) -> None:
+        """Decode a register value and store it in *data*."""
+        try:
+            value = self._decode_value(register, raw_registers)
+        except Exception:
+            _LOGGER.debug(
+                "Decode error for %s", register.key, exc_info=True,
+            )
+            return
+
+        if value is not None:
+            if register.options and isinstance(value, (int, float)):
+                int_val = int(value)
+                data[register.key] = register.options.get(
+                    int_val, str(int_val),
+                )
+                data[f"{register.key}_raw"] = int_val
+            else:
+                data[register.key] = value
+
+    def _read_individually(
+        self,
+        data: dict[str, Any],
+        registers: list[ModbusRegisterDefinition],
+        slave_id: int,
+    ) -> None:
+        """Fall-back: read each register one-at-a-time with retries."""
+        for register in registers:
+            client = ModbusClient(
+                host=self._host, port=self._port,
+                auto_open=True, auto_close=True,
+                unit_id=slave_id, timeout=self._timeout,
+            )
+            regs = None
+            for attempt in range(_MAX_RETRIES):
+                if register.register_type == RegisterType.INPUT:
+                    regs = client.read_input_registers(
+                        register.address, register.count,
+                    )
+                else:
+                    regs = client.read_holding_registers(
+                        register.address, register.count,
+                    )
+                if regs is not None:
+                    break
+                if attempt < _MAX_RETRIES - 1:
+                    _LOGGER.debug(
+                        "Individual retry %d for %s (0x%04X) slave %d",
+                        attempt + 1, register.key,
+                        register.address, slave_id,
+                    )
+                    time.sleep(_RETRY_DELAY)
+
+            if regs is not None:
+                self._store_decoded(data, register, regs)
+            else:
+                _LOGGER.debug(
+                    "Individual read failed for %s (0x%04X) slave %d "
+                    "(last_error=%s, last_except=%s)",
+                    register.key, register.address, slave_id,
+                    client.last_error, client.last_except,
+                )
+
+            time.sleep(_READ_DELAY)
 
     def _decode_value(
         self,
