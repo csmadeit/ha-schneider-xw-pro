@@ -288,6 +288,14 @@ class SchneiderModbusClient:
             value = raw_registers[0]
 
         # Apply scale and offset (e.g., Kelvin to Celsius: scale=0.01, offset=-273.0)
+        # Special handling: temperature registers with offset -273.0 use
+        # centi-Kelvin encoding.  A raw value of 0 means "no sensor
+        # connected" (the Schneider web GUI shows "N/A").  We return None
+        # so Home Assistant marks the entity as unavailable instead of
+        # showing -459.4 °F.
+        if register.offset != 0.0 and value == 0:
+            return None
+
         if register.scale != 1.0:
             value = value * register.scale
         if register.offset != 0.0:

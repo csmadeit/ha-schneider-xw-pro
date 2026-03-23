@@ -12,7 +12,7 @@ Based on OFFICIAL Schneider Electric Modbus Interface Specifications (Port 503):
 All register addresses are ZERO-BASED (as transmitted on-the-wire in the Modbus frame).
 Register numbers in the PDF are 1-based; register addresses are 0-based.
 
-Temperature registers use scale=0.01 and offset=-273.0 (Kelvin to Celsius).
+Temperature registers use scale=0.01 and offset=-273.0 (centi-Kelvin to Celsius).
 Voltage/current registers typically use scale=0.001.
 """
 
@@ -76,13 +76,13 @@ class ModbusRegisterDefinition:
     entity_category: str | None = None
 
 
+
 # =============================================================================
 # XW PRO INVERTER/CHARGER REGISTERS (slave address range: 10..29)
 # Source: 990-6268B "Conext XW Modbus 503 spec"
 # =============================================================================
 
 XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (uint32, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -93,7 +93,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = Device State (uint16, r)
     ModbusRegisterDefinition(
         name="Device State",
         key="device_state",
@@ -103,7 +102,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Hibernate", 1: "Power Save", 2: "Safe Mode", 3: "Operating", 4: "Diagnostic Mode", 5: "Remote Power Off", 255: "Data Not Available"},
         icon="mdi:state-machine",
     ),
-    # Reg 66, addr 0x0041 = Device Present (uint16, r)
     ModbusRegisterDefinition(
         name="Device Present",
         key="device_present",
@@ -113,7 +111,51 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Inactive", 1: "Active"},
         entity_category="diagnostic",
     ),
-    # Reg 72, addr 0x0047 = Inverter Enabled Status (uint16, r)
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 0",
+        key="fault_bitmap_0",
+        address=0x0042,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 1",
+        key="fault_bitmap_1",
+        address=0x0043,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 2",
+        key="fault_bitmap_2",
+        address=0x0044,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 3",
+        key="fault_bitmap_3",
+        address=0x0045,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Warning Bitmap 0",
+        key="warning_bitmap_0",
+        address=0x0046,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Inverter Enabled Status",
         key="inverter_enabled_status",
@@ -123,7 +165,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:power",
     ),
-    # Reg 73, addr 0x0048 = Charger Enabled Status (uint16, r)
     ModbusRegisterDefinition(
         name="Charger Enabled Status",
         key="charger_enabled_status",
@@ -133,7 +174,24 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:battery-charging",
     ),
-    # Reg 76, addr 0x004B = Active Faults (uint16, r)
+    ModbusRegisterDefinition(
+        name="Sell Enabled Status",
+        key="sell_enabled_status",
+        address=0x0049,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:cash",
+    ),
+    ModbusRegisterDefinition(
+        name="Forced Sell Status",
+        key="forced_sell_status",
+        address=0x004A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Disabled", 1: "Enabled", 2: "Unavailable"},
+        icon="mdi:cash-fast",
+    ),
     ModbusRegisterDefinition(
         name="Active Faults",
         key="active_faults",
@@ -144,7 +202,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert-circle",
         entity_category="diagnostic",
     ),
-    # Reg 77, addr 0x004C = Active Warnings (uint16, r)
     ModbusRegisterDefinition(
         name="Active Warnings",
         key="active_warnings",
@@ -155,7 +212,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert",
         entity_category="diagnostic",
     ),
-    # Reg 78, addr 0x004D = Charge Mode Status (uint16, r)
     ModbusRegisterDefinition(
         name="Charge Mode Status",
         key="charge_mode_status",
@@ -165,7 +221,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Stand Alone", 1: "Primary", 2: "Secondary"},
         icon="mdi:battery-charging-wireless",
     ),
-    # Reg 81, addr 0x0050 = DC Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="DC Voltage",
         key="dc_voltage",
@@ -180,7 +235,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery",
     ),
-    # Reg 83, addr 0x0052 = DC Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="DC Current",
         key="dc_current",
@@ -195,7 +249,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 85, addr 0x0054 = DC Power (sint32, r, W)
     ModbusRegisterDefinition(
         name="DC Power",
         key="dc_power",
@@ -208,7 +261,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
     ),
-    # Reg 87, addr 0x0056 = Battery Temperature (uint16, r, K)
     ModbusRegisterDefinition(
         name="Battery Temperature",
         key="battery_temperature",
@@ -223,7 +275,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
     ),
-    # Reg 89, addr 0x0058 = Invert DC Current (uint32, r, A)
     ModbusRegisterDefinition(
         name="Invert DC Current",
         key="invert_dc_current",
@@ -238,7 +289,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 91, addr 0x005A = Invert DC Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="Invert DC Power",
         key="invert_dc_power",
@@ -251,7 +301,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
-    # Reg 93, addr 0x005C = Charge DC Current (uint32, r, A)
     ModbusRegisterDefinition(
         name="Charge DC Current",
         key="charge_dc_current",
@@ -266,7 +315,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 95, addr 0x005E = Charge DC Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="Charge DC Power",
         key="charge_dc_power",
@@ -279,7 +327,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
     ),
-    # Reg 97, addr 0x0060 = Charge DC Power % (uint16, r)
     ModbusRegisterDefinition(
         name="Charge DC Power Percentage",
         key="charge_dc_power_pct",
@@ -290,7 +337,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging-high",
     ),
-    # Reg 98, addr 0x0061 = AC1 Frequency (uint16, r, Hz)
     ModbusRegisterDefinition(
         name="AC1 Input Frequency",
         key="ac1_input_frequency",
@@ -303,7 +349,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 99, addr 0x0062 = AC1 Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="AC1 Input Voltage",
         key="ac1_input_voltage",
@@ -317,7 +362,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 101, addr 0x0064 = AC1 Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="AC1 Input Current",
         key="ac1_input_current",
@@ -331,7 +375,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 103, addr 0x0066 = AC1 Power (sint32, r, W)
     ModbusRegisterDefinition(
         name="AC1 Input Power",
         key="ac1_input_power",
@@ -344,7 +387,39 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower",
     ),
-    # Reg 111, addr 0x006E = AC1 L1 Voltage (uint32, r, V)
+    ModbusRegisterDefinition(
+        name="AC1 Input Apparent Power",
+        key="ac1_input_apparent_power",
+        address=0x0068,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:transmission-tower",
+    ),
+    ModbusRegisterDefinition(
+        name="AC1 Input Current Unsigned",
+        key="ac1_input_current_unsigned",
+        address=0x006A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC1 Input Real Power",
+        key="ac1_input_real_power",
+        address=0x006C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="AC1 L1 Voltage",
         key="ac1_l1_voltage",
@@ -358,7 +433,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 113, addr 0x0070 = AC1 L2 Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="AC1 L2 Current",
         key="ac1_l2_current",
@@ -372,7 +446,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 115, addr 0x0072 = AC1 L2 Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="AC1 L2 Voltage",
         key="ac1_l2_voltage",
@@ -386,7 +459,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 117, addr 0x0074 = AC1 L1 Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="AC1 L1 Current",
         key="ac1_l1_current",
@@ -400,17 +472,42 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 124, addr 0x007B = Charger Status (uint16, r)
+    ModbusRegisterDefinition(
+        name="AC1 Voltage Qualified",
+        key="ac1_voltage_qualified",
+        address=0x0076,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Qualified", 1: "Qualified"},
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="AC1 Frequency Qualified",
+        key="ac1_frequency_qualified",
+        address=0x0077,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Qualified", 1: "Qualified"},
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Inverter Status",
+        key="inverter_status",
+        address=0x007A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={1024: "Invert", 1025: "AC Pass Through", 1026: "APS Only", 1027: "Load Sense", 1028: "Inverter Disabled", 1029: "Load Sense Ready", 1030: "Engaging Inverter", 1031: "Invert Fault", 1032: "Inverter Standby", 1033: "Grid-Tied", 1034: "Grid Support", 1035: "Gen Support", 1036: "Sell-to-Grid", 1037: "Load Shaving", 1038: "Grid Frequency Stabilization", 1039: "AC Coupling", 1040: "Reverse Ibatt"},
+        icon="mdi:power",
+    ),
     ModbusRegisterDefinition(
         name="Charger Status",
         key="charger_status",
         address=0x007B,
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
-        options={0: "Not Charging", 1: "Bulk", 2: "Absorption", 3: "Overcharge", 4: "Equalize", 5: "Float", 6: "No Float", 7: "Constant VI", 8: "Charger Disabled", 9: "Qualifying AC", 10: "Qualifying APS"},
+        options={768: "Not Charging", 769: "Bulk", 770: "Absorption", 771: "Overcharge", 772: "Equalize", 773: "Float", 774: "No Float", 775: "Constant VI", 776: "Charger Disabled", 777: "Qualifying AC", 778: "Qualifying APS", 779: "Engaging Charger", 780: "Charge Fault", 781: "Charger Suspend", 782: "AC Good", 783: "APS Good", 784: "AC Fault", 785: "Charge", 786: "Absorption Exit Pending"},
         icon="mdi:battery-charging-wireless",
     ),
-    # Reg 127, addr 0x007E = AC1 Output Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="AC1 Output Voltage",
         key="ac1_output_voltage",
@@ -424,7 +521,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 129, addr 0x0080 = AC1 Output Current (uint32, r, A)
     ModbusRegisterDefinition(
         name="AC1 Output Current",
         key="ac1_output_current",
@@ -438,7 +534,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 131, addr 0x0082 = AC1 Output Frequency (uint16, r, Hz)
     ModbusRegisterDefinition(
         name="AC1 Output Frequency",
         key="ac1_output_frequency",
@@ -451,7 +546,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 133, addr 0x0084 = AC1 Output Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="AC1 Output Power",
         key="ac1_output_power",
@@ -464,7 +558,15 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
     ),
-    # Reg 141, addr 0x008C = AC Load Voltage (uint32, r, V)
+    ModbusRegisterDefinition(
+        name="AC1 Output Apparent Power",
+        key="ac1_output_apparent_power",
+        address=0x008A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:home-lightning-bolt",
+    ),
     ModbusRegisterDefinition(
         name="AC Load Voltage",
         key="ac_load_voltage",
@@ -478,7 +580,58 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 151, addr 0x0096 = AC Load Current (sint32, r, A)
+    ModbusRegisterDefinition(
+        name="AC Load L1 Voltage",
+        key="ac_load_l1_voltage",
+        address=0x008E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC Load L2 Voltage",
+        key="ac_load_l2_voltage",
+        address=0x0090,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC Load L1 Current",
+        key="ac_load_l1_current",
+        address=0x0092,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC Load L2 Current",
+        key="ac_load_l2_current",
+        address=0x0094,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="AC Load Current",
         key="ac_load_current",
@@ -492,7 +645,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 153, addr 0x0098 = AC Load Frequency (uint16, r, Hz)
     ModbusRegisterDefinition(
         name="AC Load Frequency",
         key="ac_load_frequency",
@@ -505,7 +657,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 155, addr 0x009A = AC Load Power (sint32, r, W)
     ModbusRegisterDefinition(
         name="AC Load Power",
         key="ac_load_power",
@@ -518,7 +669,15 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
-    # Reg 163, addr 0x00A2 = AC2 Voltage (uint32, r, V)
+    ModbusRegisterDefinition(
+        name="AC Load Apparent Power",
+        key="ac_load_apparent_power",
+        address=0x00A0,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        icon="mdi:flash",
+    ),
     ModbusRegisterDefinition(
         name="AC2 Voltage",
         key="ac2_voltage",
@@ -532,7 +691,19 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 167, addr 0x00A6 = AC2 Frequency (uint16, r, Hz)
+    ModbusRegisterDefinition(
+        name="AC2 Current",
+        key="ac2_current",
+        address=0x00A4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="AC2 Frequency",
         key="ac2_frequency",
@@ -545,7 +716,24 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 173, addr 0x00AC = AC2 Power (uint32, r, W)
+    ModbusRegisterDefinition(
+        name="AC2 Voltage Qualified",
+        key="ac2_voltage_qualified",
+        address=0x00A7,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Qualified", 1: "Qualified"},
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="AC2 Frequency Qualified",
+        key="ac2_frequency_qualified",
+        address=0x00A8,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Qualified", 1: "Qualified"},
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="AC2 Power",
         key="ac2_power",
@@ -558,7 +746,97 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:engine",
     ),
-    # Reg 193, addr 0x00C0 = Switch Operating State (uint16, r)
+    ModbusRegisterDefinition(
+        name="AC2 L1 Voltage",
+        key="ac2_l1_voltage",
+        address=0x00B2,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC2 L1 Current",
+        key="ac2_l1_current",
+        address=0x00B4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC2 L2 Voltage",
+        key="ac2_l2_voltage",
+        address=0x00B6,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC2 L2 Current",
+        key="ac2_l2_current",
+        address=0x00B8,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="AC2 Apparent Power",
+        key="ac2_apparent_power",
+        address=0x00BA,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output Status",
+        key="auxiliary_output_status",
+        address=0x00BC,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output On Reason",
+        key="auxiliary_output_on_reason",
+        address=0x00BD,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Active", 1: "Load Sense", 2: "Manual On", 3: "Temperature", 4: "SOC", 5: "Fault"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output Off Reason",
+        key="auxiliary_output_off_reason",
+        address=0x00BE,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Active", 1: "Load Sense", 2: "Manual Off", 3: "Temperature", 4: "SOC"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Switch Operating State",
         key="switch_operating_state",
@@ -569,7 +847,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:toggle-switch",
         entity_category="diagnostic",
     ),
-    # Reg 194, addr 0x00C1 = Switch Mode (uint16, r)
     ModbusRegisterDefinition(
         name="Switch Mode",
         key="switch_mode",
@@ -580,7 +857,43 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:toggle-switch-variant",
         entity_category="diagnostic",
     ),
-    # Reg 229, addr 0x00E4 = Energy From Battery Lifetime (uint32, r, kWh)
+    ModbusRegisterDefinition(
+        name="Warning Bitmap 1",
+        key="warning_bitmap_1",
+        address=0x00C2,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Nominal Battery Voltage",
+        key="nominal_battery_voltage",
+        address=0x0174,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Energy From Battery Today",
+        key="energy_from_battery_today",
+        address=0x00D4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:battery-minus",
+    ),
     ModbusRegisterDefinition(
         name="Energy From Battery Lifetime",
         key="energy_from_battery_lifetime",
@@ -595,7 +908,20 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:battery-minus",
     ),
-    # Reg 253, addr 0x00FC = Energy To Battery Lifetime (uint32, r, kWh)
+    ModbusRegisterDefinition(
+        name="Energy To Battery Today",
+        key="energy_to_battery_today",
+        address=0x00EC,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:battery-charging",
+    ),
     ModbusRegisterDefinition(
         name="Energy To Battery Lifetime",
         key="energy_to_battery_lifetime",
@@ -610,7 +936,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:battery-charging",
     ),
-    # Reg 261, addr 0x0104 = Grid Input Energy Today (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Grid Input Energy Today",
         key="grid_input_energy_today",
@@ -625,7 +950,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-import",
     ),
-    # Reg 277, addr 0x0114 = Grid Input Energy Lifetime (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Grid Input Energy Lifetime",
         key="grid_input_energy_lifetime",
@@ -640,7 +964,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-import",
     ),
-    # Reg 285, addr 0x011C = Grid Output Energy Today (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Grid Output Energy Today",
         key="grid_output_energy_today",
@@ -655,7 +978,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-export",
     ),
-    # Reg 301, addr 0x012C = Grid Output Energy Lifetime (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Grid Output Energy Lifetime",
         key="grid_output_energy_lifetime",
@@ -670,7 +992,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:transmission-tower-export",
     ),
-    # Reg 309, addr 0x0134 = Load Output Energy Today (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Load Output Energy Today",
         key="load_output_energy_today",
@@ -685,7 +1006,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:lightning-bolt",
     ),
-    # Reg 325, addr 0x0144 = Load Output Energy Lifetime (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Load Output Energy Lifetime",
         key="load_output_energy_lifetime",
@@ -700,7 +1020,20 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:lightning-bolt",
     ),
-    # Reg 349, addr 0x015C = Generator Input Energy Lifetime (uint32, r, kWh)
+    ModbusRegisterDefinition(
+        name="Generator Input Energy Today",
+        key="generator_input_energy_today",
+        address=0x014C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:engine",
+    ),
     ModbusRegisterDefinition(
         name="Generator Input Energy Lifetime",
         key="generator_input_energy_lifetime",
@@ -721,7 +1054,6 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
 # --- XW Pro Writable Holding Registers ---
 # Source: 990-6268B pages 14-18
 XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 354, addr 0x0161 = Inverter Enable/Disable (uint16, rw)
     ModbusRegisterDefinition(
         name="Inverter Enable",
         key="inverter_enable",
@@ -734,7 +1066,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:power",
     ),
-    # Reg 355, addr 0x0162 = Grid Support Sell Enable (uint16, rw)
     ModbusRegisterDefinition(
         name="Grid Support Sell Enable",
         key="grid_support_sell_enable",
@@ -747,7 +1078,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:transmission-tower",
     ),
-    # Reg 356, addr 0x0163 = Force Sell (uint16, rw)
     ModbusRegisterDefinition(
         name="Force Sell",
         key="force_sell",
@@ -760,7 +1090,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:cash",
     ),
-    # Reg 357, addr 0x0164 = Charger Enable/Disable (uint16, rw)
     ModbusRegisterDefinition(
         name="Charger Enable",
         key="charger_enable",
@@ -773,7 +1102,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:battery-charging",
     ),
-    # Reg 358, addr 0x0165 = Force Charger State (uint16, rw)
     ModbusRegisterDefinition(
         name="Force Charger State",
         key="force_charger_state",
@@ -784,7 +1112,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={1: "Bulk", 2: "Float", 3: "No Float"},
         icon="mdi:battery-charging-high",
     ),
-    # Reg 359, addr 0x0166 = Operating Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Operating Mode",
         key="operating_mode",
@@ -795,7 +1122,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={2: "Standby", 3: "Operating"},
         icon="mdi:tune",
     ),
-    # Reg 362, addr 0x0169 = Search Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Search Mode",
         key="search_mode",
@@ -808,7 +1134,26 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:magnify",
     ),
-    # Reg 368, addr 0x016F = Maximum Charge Rate (uint16, rw, %)
+    ModbusRegisterDefinition(
+        name="Inverter Mode",
+        key="inverter_mode",
+        address=0x016A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "Gen Support", 1: "Grid Support", 2: "Mini Grid", 3: "Grid Tied", 4: "AC Coupling"},
+        icon="mdi:power",
+    ),
+    ModbusRegisterDefinition(
+        name="Charge Cycle",
+        key="charge_cycle",
+        address=0x016E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "2 Stage", 1: "3 Stage"},
+        icon="mdi:battery-sync",
+    ),
     ModbusRegisterDefinition(
         name="Maximum Charge Rate",
         key="max_charge_rate",
@@ -821,7 +1166,27 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         max_value=100,
         icon="mdi:current-dc",
     ),
-    # Reg 377, addr 0x0178 = Grid Support Voltage (uint32, rw, V)
+    ModbusRegisterDefinition(
+        name="Battery Type",
+        key="battery_type",
+        address=0x0173,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "Flooded", 1: "Gel", 2: "AGM", 3: "Custom"},
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Bank Capacity",
+        key="battery_bank_capacity",
+        address=0x0176,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=10000,
+        icon="mdi:battery",
+    ),
     ModbusRegisterDefinition(
         name="Grid Support Voltage",
         key="grid_support_voltage",
@@ -833,9 +1198,25 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=UnitOfElectricPotential.VOLT,
         writable=True,
+        min_value=0,
+        max_value=300.0,
         icon="mdi:transmission-tower",
     ),
-    # Reg 381, addr 0x017C = Low Battery Cut Out (uint32, rw, V)
+    ModbusRegisterDefinition(
+        name="Recharge Voltage",
+        key="recharge_voltage",
+        address=0x017A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery-charging",
+    ),
     ModbusRegisterDefinition(
         name="Low Battery Cut Out",
         key="low_battery_cut_out",
@@ -847,9 +1228,25 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=UnitOfElectricPotential.VOLT,
         writable=True,
+        min_value=0,
+        max_value=70.0,
         icon="mdi:battery-alert",
     ),
-    # Reg 392, addr 0x0187 = AC Priority (uint16, rw)
+    ModbusRegisterDefinition(
+        name="High Battery Cut Out",
+        key="high_battery_cut_out",
+        address=0x018A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery-alert",
+    ),
     ModbusRegisterDefinition(
         name="AC Priority",
         key="ac_priority",
@@ -860,7 +1257,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Force AC Disqualify", 1: "Grid Priority (AC1)", 2: "Generator Priority (AC2)"},
         icon="mdi:power-plug",
     ),
-    # Reg 393, addr 0x0188 = AC1 Breaker Size (uint16, rw, A)
     ModbusRegisterDefinition(
         name="AC1 Breaker Size",
         key="ac1_breaker_size",
@@ -870,9 +1266,10 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         scale=0.01,
         unit=UnitOfElectricCurrent.AMPERE,
         writable=True,
+        min_value=0,
+        max_value=100.0,
         icon="mdi:current-ac",
     ),
-    # Reg 394, addr 0x0189 = AC2 Breaker Size (uint16, rw, A)
     ModbusRegisterDefinition(
         name="AC2 Breaker Size",
         key="ac2_breaker_size",
@@ -882,7 +1279,213 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         scale=0.01,
         unit=UnitOfElectricCurrent.AMPERE,
         writable=True,
+        min_value=0,
+        max_value=100.0,
         icon="mdi:current-ac",
+    ),
+    ModbusRegisterDefinition(
+        name="Bulk Voltage Setpoint",
+        key="bulk_voltage_setpoint",
+        address=0x019A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Absorption Voltage Setpoint",
+        key="absorption_voltage_setpoint",
+        address=0x019C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Absorption Time",
+        key="absorption_time",
+        address=0x019E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=28800,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Float Voltage Setpoint",
+        key="float_voltage_setpoint",
+        address=0x01A0,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Equalize Voltage Setpoint",
+        key="equalize_voltage_setpoint",
+        address=0x0196,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Load Shave Enable",
+        key="load_shave_enable",
+        address=0x01B2,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:flash-off",
+    ),
+    ModbusRegisterDefinition(
+        name="Grid Support Enable",
+        key="grid_support_enable",
+        address=0x01B3,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:transmission-tower",
+    ),
+    ModbusRegisterDefinition(
+        name="Maximum Sell Amps",
+        key="max_sell_amps",
+        address=0x01B4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=100.0,
+        icon="mdi:cash",
+    ),
+    ModbusRegisterDefinition(
+        name="Load Shave Amps",
+        key="load_shave_amps",
+        address=0x01B6,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=100.0,
+        icon="mdi:flash-off",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Support Enable",
+        key="generator_support_enable",
+        address=0x01B8,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Support Amps",
+        key="generator_support_amps",
+        address=0x01BA,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=100.0,
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="AC Coupling",
+        key="ac_coupling",
+        address=0x01EF,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:link-variant",
+    ),
+    ModbusRegisterDefinition(
+        name="Maximum Discharge Current",
+        key="max_discharge_current",
+        address=0x01D4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=1000,
+        icon="mdi:current-dc",
+    ),
+    ModbusRegisterDefinition(
+        name="Low Battery Cut Out Hysteresis",
+        key="low_battery_cut_out_hysteresis",
+        address=0x01F2,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=10.0,
+        icon="mdi:battery-alert",
+    ),
+    ModbusRegisterDefinition(
+        name="Maximum Sell Scale Percentage",
+        key="max_sell_scale_pct",
+        address=0x01FF,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=PERCENTAGE,
+        writable=True,
+        min_value=0,
+        max_value=100,
+        icon="mdi:cash",
     ),
 ]
 
@@ -893,7 +1496,6 @@ XW_PRO_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
 # =============================================================================
 
 MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (uint32, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -904,7 +1506,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = Device State (uint16, r)
     ModbusRegisterDefinition(
         name="Device State",
         key="device_state",
@@ -914,7 +1515,15 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Hibernate", 1: "Power Save", 2: "Safe Mode", 3: "Operating", 4: "Diagnostic Mode", 5: "Remote Power Off", 255: "Data Not Available"},
         icon="mdi:state-machine",
     ),
-    # Reg 67, addr 0x0042 = Device Present (uint16, r)
+    ModbusRegisterDefinition(
+        name="Charger Enabled Status",
+        key="charger_enabled_status",
+        address=0x0041,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:solar-panel",
+    ),
     ModbusRegisterDefinition(
         name="Device Present",
         key="device_present",
@@ -924,7 +1533,15 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Inactive", 1: "Active"},
         entity_category="diagnostic",
     ),
-    # Reg 69, addr 0x0044 = Active Faults (uint16, r)
+    ModbusRegisterDefinition(
+        name="Charge Mode Status",
+        key="charge_mode_status",
+        address=0x0043,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Stand Alone", 1: "Primary", 2: "Secondary"},
+        icon="mdi:battery-charging-wireless",
+    ),
     ModbusRegisterDefinition(
         name="Active Faults",
         key="active_faults",
@@ -935,7 +1552,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert-circle",
         entity_category="diagnostic",
     ),
-    # Reg 70, addr 0x0045 = Active Warnings (uint16, r)
     ModbusRegisterDefinition(
         name="Active Warnings",
         key="active_warnings",
@@ -946,17 +1562,42 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert",
         entity_category="diagnostic",
     ),
-    # Reg 74, addr 0x0049 = Charger Status (uint16, r)
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 0",
+        key="fault_bitmap_0",
+        address=0x0046,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 1",
+        key="fault_bitmap_1",
+        address=0x0047,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Warning Bitmap 0",
+        key="warning_bitmap_0",
+        address=0x0048,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Charger Status",
         key="charger_status",
         address=0x0049,
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
-        options={0: "Not Charging", 1: "Bulk", 2: "Absorption", 3: "Float", 4: "Equalize"},
+        options={768: "Not Charging", 769: "Bulk", 770: "Absorption", 771: "Overcharge", 772: "Equalize", 773: "Float", 774: "No Float", 775: "Constant VI", 776: "Charger Disabled", 777: "Qualifying AC", 778: "Qualifying APS", 779: "Engaging Charger", 780: "Charge Fault", 781: "Charger Suspend", 782: "AC Good", 783: "APS Good", 784: "AC Fault", 785: "Charge", 786: "Absorption Exit Pending", 787: "Ground Fault"},
         icon="mdi:battery-charging-wireless",
     ),
-    # Reg 77, addr 0x004C = PV Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="PV Voltage",
         key="pv_voltage",
@@ -971,7 +1612,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-panel",
     ),
-    # Reg 79, addr 0x004E = PV Current (uint32, r, A)
     ModbusRegisterDefinition(
         name="PV Current",
         key="pv_current",
@@ -986,7 +1626,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-panel",
     ),
-    # Reg 81, addr 0x0050 = PV Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="PV Power",
         key="pv_power",
@@ -999,7 +1638,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-power",
     ),
-    # Reg 87, addr 0x0056 = Battery Temperature (uint16, r, K)
     ModbusRegisterDefinition(
         name="Battery Temperature",
         key="battery_temperature",
@@ -1014,7 +1652,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
     ),
-    # Reg 89, addr 0x0058 = DC Output Voltage (sint32, r, V)
     ModbusRegisterDefinition(
         name="DC Output Voltage",
         key="dc_output_voltage",
@@ -1029,7 +1666,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery",
     ),
-    # Reg 91, addr 0x005A = DC Output Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="DC Output Current",
         key="dc_output_current",
@@ -1044,7 +1680,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 93, addr 0x005C = DC Output Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="DC Output Power",
         key="dc_output_power",
@@ -1057,7 +1692,46 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
     ),
-    # Reg 117, addr 0x0074 = Energy From PV Today (uint32, r, kWh)
+    ModbusRegisterDefinition(
+        name="DC Output Power Percentage",
+        key="dc_output_power_pct",
+        address=0x005E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery-charging-high",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output Status",
+        key="auxiliary_output_status",
+        address=0x005F,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output On Reason",
+        key="auxiliary_output_on_reason",
+        address=0x0064,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Active", 1: "Manual On", 2: "Battery Voltage", 3: "Array Voltage", 4: "Temperature"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Auxiliary Output Off Reason",
+        key="auxiliary_output_off_reason",
+        address=0x0065,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Active", 1: "Manual Off", 2: "Battery Voltage", 3: "Array Voltage", 4: "Temperature"},
+        icon="mdi:electric-switch",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Energy From PV Today",
         key="energy_from_pv_today",
@@ -1072,7 +1746,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:white-balance-sunny",
     ),
-    # Reg 133, addr 0x0084 = Energy From PV Lifetime (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Energy From PV Lifetime",
         key="energy_from_pv_lifetime",
@@ -1087,7 +1760,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:solar-power-variant",
     ),
-    # Reg 141, addr 0x008C = Energy To Battery Today (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Energy To Battery Today",
         key="energy_to_battery_today",
@@ -1102,7 +1774,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:battery-charging",
     ),
-    # Reg 157, addr 0x009C = Energy To Battery Lifetime (uint32, r, kWh)
     ModbusRegisterDefinition(
         name="Energy To Battery Lifetime",
         key="energy_to_battery_lifetime",
@@ -1120,7 +1791,6 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
 ]
 
 MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 161, addr 0x00A0 = MPPT Enable (uint16, rw)
     ModbusRegisterDefinition(
         name="MPPT Enable",
         key="mppt_enable",
@@ -1133,7 +1803,27 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:solar-panel",
     ),
-    # Reg 171, addr 0x00AA = Force Charger State (uint16, rw)
+    ModbusRegisterDefinition(
+        name="Battery Type",
+        key="battery_type",
+        address=0x00A5,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "Flooded", 1: "Gel", 2: "AGM", 3: "Custom"},
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Bank Capacity",
+        key="battery_bank_capacity",
+        address=0x00A8,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=10000,
+        icon="mdi:battery",
+    ),
     ModbusRegisterDefinition(
         name="Force Charger State",
         key="force_charger_state",
@@ -1144,7 +1834,6 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={1: "Bulk", 2: "Float", 3: "No Float"},
         icon="mdi:battery-charging-high",
     ),
-    # Reg 173, addr 0x00AC = Operating Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Operating Mode",
         key="operating_mode",
@@ -1155,7 +1844,21 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={2: "Standby", 3: "Operating"},
         icon="mdi:tune",
     ),
-    # Reg 177, addr 0x00B0 = Absorb Voltage Set Point (uint32, rw, V)
+    ModbusRegisterDefinition(
+        name="Equalize Voltage Setpoint",
+        key="equalize_voltage_setpoint",
+        address=0x00AE,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
     ModbusRegisterDefinition(
         name="Absorb Voltage Setpoint",
         key="absorb_voltage_setpoint",
@@ -1167,9 +1870,10 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=UnitOfElectricPotential.VOLT,
         writable=True,
+        min_value=0,
+        max_value=70.0,
         icon="mdi:flash",
     ),
-    # Reg 179, addr 0x00B2 = Float Voltage Set Point (uint32, rw, V)
     ModbusRegisterDefinition(
         name="Float Voltage Setpoint",
         key="float_voltage_setpoint",
@@ -1181,9 +1885,62 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=UnitOfElectricPotential.VOLT,
         writable=True,
+        min_value=0,
+        max_value=70.0,
         icon="mdi:flash",
     ),
-    # Reg 187, addr 0x00BA = Maximum Charge Rate (uint16, rw, %)
+    ModbusRegisterDefinition(
+        name="Recharge Voltage",
+        key="recharge_voltage",
+        address=0x00B4,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery-charging",
+    ),
+    ModbusRegisterDefinition(
+        name="Absorption Voltage Setpoint",
+        key="absorption_voltage_setpoint",
+        address=0x00B6,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Absorption Time",
+        key="absorption_time",
+        address=0x00B8,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.MINUTES,
+        writable=True,
+        min_value=0,
+        max_value=480,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Charge Cycle",
+        key="charge_cycle",
+        address=0x00B9,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "2 Stage", 1: "3 Stage"},
+        icon="mdi:battery-sync",
+    ),
     ModbusRegisterDefinition(
         name="Maximum Charge Rate",
         key="max_charge_rate",
@@ -1196,6 +1953,28 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         max_value=100,
         icon="mdi:current-dc",
     ),
+    ModbusRegisterDefinition(
+        name="Equalize Now",
+        key="equalize_now",
+        address=0x00BB,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Charge Mode",
+        key="charge_mode",
+        address=0x00BE,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "Stand Alone", 1: "Primary", 2: "Secondary"},
+        icon="mdi:battery-charging-wireless",
+    ),
 ]
 
 
@@ -1205,7 +1984,6 @@ MPPT_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
 # =============================================================================
 
 AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (uint32, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -1216,7 +1994,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = Device State (uint16, r)
     ModbusRegisterDefinition(
         name="Device State",
         key="device_state",
@@ -1226,7 +2003,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Hibernate", 1: "Power Save", 2: "Safe Mode", 3: "Operating", 4: "Diagnostic Mode", 5: "Remote Power Off", 255: "Data Not Available"},
         icon="mdi:state-machine",
     ),
-    # Reg 66, addr 0x0041 = Device Present (uint16, r)
     ModbusRegisterDefinition(
         name="Device Present",
         key="device_present",
@@ -1236,7 +2012,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Inactive", 1: "Active"},
         entity_category="diagnostic",
     ),
-    # Reg 67, addr 0x0042 = Auto Generator State (uint16, r)
     ModbusRegisterDefinition(
         name="Generator State",
         key="generator_state",
@@ -1246,7 +2021,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Quiet Time", 1: "Auto On", 2: "Auto Off", 3: "Manual On", 4: "Manual Off", 5: "Gen Shutdown", 6: "Ext Shutdown", 7: "AGS Fault", 8: "Suspend", 9: "Not Operating"},
         icon="mdi:engine",
     ),
-    # Reg 68, addr 0x0043 = Auto Generator Action (uint16, r)
     ModbusRegisterDefinition(
         name="Generator Action",
         key="generator_action",
@@ -1256,7 +2030,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Preheating", 1: "Start Delay", 2: "Cranking", 3: "Starter Cooling", 4: "Warming Up", 5: "Cooling Down", 6: "Spinning Down", 7: "Shutdown Bypass", 8: "Stopping", 9: "Running", 10: "Stopped", 11: "Crank Delay"},
         icon="mdi:engine",
     ),
-    # Reg 69, addr 0x0044 = Generator On Reason (uint16, r)
     ModbusRegisterDefinition(
         name="Generator On Reason",
         key="generator_on_reason",
@@ -1267,7 +2040,16 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:engine",
         entity_category="diagnostic",
     ),
-    # Reg 71, addr 0x0046 = Active Faults Flag (uint16, r)
+    ModbusRegisterDefinition(
+        name="Generator Off Reason",
+        key="generator_off_reason",
+        address=0x0045,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        options={0: "Not Off", 1: "DC Voltage High", 2: "Battery SOC High", 3: "AC Current Low", 4: "Contact Open", 5: "Manual Off", 6: "Timer", 7: "Quiet Time"},
+        icon="mdi:engine",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Active Faults",
         key="active_faults",
@@ -1278,7 +2060,6 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert-circle",
         entity_category="diagnostic",
     ),
-    # Reg 72, addr 0x0047 = Active Warnings Flag (uint16, r)
     ModbusRegisterDefinition(
         name="Active Warnings",
         key="active_warnings",
@@ -1289,10 +2070,27 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert",
         entity_category="diagnostic",
     ),
+    ModbusRegisterDefinition(
+        name="Fault Bitmap 0",
+        key="fault_bitmap_0",
+        address=0x0048,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert-circle",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Warning Bitmap 0",
+        key="warning_bitmap_0",
+        address=0x0049,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert",
+        entity_category="diagnostic",
+    ),
 ]
 
 AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 77, addr 0x004C = Operating Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Operating Mode",
         key="operating_mode",
@@ -1303,7 +2101,6 @@ AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={2: "Standby", 3: "Operating"},
         icon="mdi:tune",
     ),
-    # Reg 78, addr 0x004D = Generator Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Generator Mode",
         key="generator_mode",
@@ -1314,7 +2111,42 @@ AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Off", 1: "On", 2: "Automatic", 3: "Force On Auto Off"},
         icon="mdi:engine",
     ),
-    # Reg 84, addr 0x0053 = Auto Start On DC V (uint16, rw)
+    ModbusRegisterDefinition(
+        name="Generator Quiet Time Start",
+        key="gen_quiet_time_start",
+        address=0x0050,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.MINUTES,
+        writable=True,
+        min_value=0,
+        max_value=1440,
+        icon="mdi:clock-start",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Quiet Time Stop",
+        key="gen_quiet_time_stop",
+        address=0x0051,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.MINUTES,
+        writable=True,
+        min_value=0,
+        max_value=1440,
+        icon="mdi:clock-end",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Quiet Time Enable",
+        key="gen_quiet_time_enable",
+        address=0x0052,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:volume-off",
+    ),
     ModbusRegisterDefinition(
         name="Auto Start On DC Voltage",
         key="auto_start_dc_v",
@@ -1327,7 +2159,148 @@ AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:engine",
     ),
-    # Reg 107, addr 0x006A = Max Gen Run Time (uint16, rw, hours)
+    ModbusRegisterDefinition(
+        name="Auto Stop On DC Voltage",
+        key="auto_stop_dc_v",
+        address=0x0054,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="Auto Start On Battery SOC",
+        key="auto_start_battery_soc",
+        address=0x0055,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Auto Stop On Battery SOC",
+        key="auto_stop_battery_soc",
+        address=0x0056,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Inverter Load Start Stop Triggers",
+        key="inverter_load_triggers",
+        address=0x0057,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Auto Stop On AC Current",
+        key="auto_stop_ac_current",
+        address=0x0058,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:current-ac",
+    ),
+    ModbusRegisterDefinition(
+        name="Stop At Absorption",
+        key="stop_at_absorption",
+        address=0x0059,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:battery-charging",
+    ),
+    ModbusRegisterDefinition(
+        name="Stop At Float",
+        key="stop_at_float",
+        address=0x005A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:battery-charging",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Type",
+        key="generator_type",
+        address=0x0061,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "2 Wire", 1: "3 Wire"},
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Preheat Time",
+        key="gen_preheat_time",
+        address=0x0063,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=600,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Crank Delay",
+        key="gen_crank_delay",
+        address=0x0064,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=600,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Crank Time",
+        key="gen_crank_time",
+        address=0x0065,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=60,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Warmup Time",
+        key="gen_warmup_time",
+        address=0x0069,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=600,
+        icon="mdi:timer",
+    ),
     ModbusRegisterDefinition(
         name="Maximum Generator Run Time",
         key="max_gen_run_time",
@@ -1341,6 +2314,169 @@ AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         max_value=24,
         icon="mdi:timer",
     ),
+    ModbusRegisterDefinition(
+        name="Generator Cool Down Time",
+        key="gen_cool_down_time",
+        address=0x006B,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.SECONDS,
+        writable=True,
+        min_value=0,
+        max_value=600,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Exercise Period",
+        key="gen_exercise_period",
+        address=0x006F,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        options={0: "None", 1: "Weekly", 2: "Bi-Weekly", 3: "Monthly"},
+        icon="mdi:calendar",
+    ),
+    ModbusRegisterDefinition(
+        name="Generator Exercise Duration",
+        key="gen_exercise_duration",
+        address=0x0070,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=UnitOfTime.MINUTES,
+        writable=True,
+        min_value=0,
+        max_value=1440,
+        icon="mdi:timer",
+    ),
+    ModbusRegisterDefinition(
+        name="AC Current Level To Start",
+        key="ac_current_level_start",
+        address=0x0076,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=100.0,
+        icon="mdi:current-ac",
+    ),
+    ModbusRegisterDefinition(
+        name="AC Current Level To Stop",
+        key="ac_current_level_stop",
+        address=0x0074,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricCurrent.AMPERE,
+        writable=True,
+        min_value=0,
+        max_value=100.0,
+        icon="mdi:current-ac",
+    ),
+    ModbusRegisterDefinition(
+        name="Starting Battery Voltage 30s",
+        key="start_batt_voltage_30s",
+        address=0x0078,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Starting Battery Voltage 15m",
+        key="start_batt_voltage_15m",
+        address=0x007A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Starting Battery Voltage 2h",
+        key="start_batt_voltage_2h",
+        address=0x007C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Starting Battery Voltage 24h",
+        key="start_batt_voltage_24h",
+        address=0x007E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Stop Voltage",
+        key="stop_voltage",
+        address=0x0080,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        writable=True,
+        min_value=0,
+        max_value=70.0,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="SOC Level To Start Generator",
+        key="soc_level_start_gen",
+        address=0x0088,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=PERCENTAGE,
+        writable=True,
+        min_value=0,
+        max_value=100,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="SOC Level To Stop Generator",
+        key="soc_level_stop_gen",
+        address=0x0087,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=PERCENTAGE,
+        writable=True,
+        min_value=0,
+        max_value=100,
+        icon="mdi:battery",
+    ),
 ]
 
 
@@ -1350,7 +2486,6 @@ AGS_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
 # =============================================================================
 
 BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (uint32, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -1361,16 +2496,15 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = Device State (uint16, r)
     ModbusRegisterDefinition(
         name="Device State",
         key="device_state",
         address=0x0040,
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
+        options={0: "Hibernate", 1: "Power Save", 2: "Safe Mode", 3: "Operating", 4: "Diagnostic Mode", 5: "Remote Power Off", 255: "Data Not Available"},
         icon="mdi:state-machine",
     ),
-    # Reg 66, addr 0x0041 = Device Present (uint16, r)
     ModbusRegisterDefinition(
         name="Device Present",
         key="device_present",
@@ -1380,7 +2514,6 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Inactive", 1: "Active"},
         entity_category="diagnostic",
     ),
-    # Reg 71, addr 0x0046 = Battery Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="Battery Voltage",
         key="battery_voltage",
@@ -1395,7 +2528,6 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery",
     ),
-    # Reg 73, addr 0x0048 = Battery Current (sint32, r, A)
     ModbusRegisterDefinition(
         name="Battery Current",
         key="battery_current",
@@ -1404,13 +2536,12 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.INT32,
         count=2,
         scale=0.001,
-        precision=2,
+        precision=3,
         unit=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 75, addr 0x004A = Battery Temperature (uint32, r, K)
     ModbusRegisterDefinition(
         name="Battery Temperature",
         key="battery_temperature",
@@ -1426,9 +2557,8 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:thermometer",
     ),
-    # Reg 77, addr 0x004C = Battery SOC (uint32, r, %)
     ModbusRegisterDefinition(
-        name="Battery SOC",
+        name="Battery State of Charge",
         key="battery_soc",
         address=0x004C,
         register_type=RegisterType.HOLDING,
@@ -1439,7 +2569,6 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-heart-variant",
     ),
-    # Reg 79, addr 0x004E = Battery State of Health (uint32, r, %)
     ModbusRegisterDefinition(
         name="Battery State of Health",
         key="battery_soh",
@@ -1450,7 +2579,55 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         unit=PERCENTAGE,
         icon="mdi:battery-heart",
     ),
-    # Reg 89, addr 0x0058 = Battery Capacity Remaining (uint32, r, Ah)
+    ModbusRegisterDefinition(
+        name="Battery Percent Over Charge",
+        key="battery_pct_over_charge",
+        address=0x0050,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=PERCENTAGE,
+        icon="mdi:battery-alert",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Midpoint 1 Voltage",
+        key="battery_midpoint_1_voltage",
+        address=0x0052,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Midpoint 2 Voltage",
+        key="battery_midpoint_2_voltage",
+        address=0x0054,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Midpoint 3 Voltage",
+        key="battery_midpoint_3_voltage",
+        address=0x0056,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="Battery Capacity Remaining",
         key="battery_capacity_remaining",
@@ -1459,9 +2636,16 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:battery",
-        entity_category="diagnostic",
     ),
-    # Reg 95, addr 0x005E = Battery Time To Full (uint32, r, s)
+    ModbusRegisterDefinition(
+        name="Battery Capacity Removed",
+        key="battery_capacity_removed",
+        address=0x005A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:battery-minus",
+    ),
     ModbusRegisterDefinition(
         name="Battery Time To Full",
         key="battery_time_to_full",
@@ -1469,10 +2653,9 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
-        unit=UnitOfTime.SECONDS,
+        unit=UnitOfTime.MINUTES,
         icon="mdi:timer-sand",
     ),
-    # Reg 97, addr 0x0060 = Battery Time To Discharge (uint32, r, s)
     ModbusRegisterDefinition(
         name="Battery Time To Discharge",
         key="battery_time_to_discharge",
@@ -1480,10 +2663,94 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
-        unit=UnitOfTime.SECONDS,
+        unit=UnitOfTime.MINUTES,
         icon="mdi:timer-sand-empty",
     ),
-    # Reg 111, addr 0x006E = Number of Charge Cycles (uint16, r)
+    ModbusRegisterDefinition(
+        name="Battery Hours In Float",
+        key="battery_hours_in_float",
+        address=0x0062,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.1,
+        precision=1,
+        unit=UnitOfTime.HOURS,
+        icon="mdi:timer",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Last Equalize",
+        key="battery_last_equalize",
+        address=0x0064,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:calendar",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Average Discharge",
+        key="battery_avg_discharge",
+        address=0x0066,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT16,
+        icon="mdi:battery-minus",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Average Discharge Percent",
+        key="battery_avg_discharge_pct",
+        address=0x0067,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT16,
+        scale=0.01,
+        precision=1,
+        unit=PERCENTAGE,
+        icon="mdi:battery-minus",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Deepest Discharge",
+        key="battery_deepest_discharge",
+        address=0x0068,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT16,
+        icon="mdi:battery-alert",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Deepest Discharge Percent",
+        key="battery_deepest_discharge_pct",
+        address=0x0069,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT16,
+        scale=0.01,
+        precision=1,
+        unit=PERCENTAGE,
+        icon="mdi:battery-alert",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Capacity Removed Total",
+        key="battery_capacity_removed_total",
+        address=0x006A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:battery-minus",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Battery Capacity Returned",
+        key="battery_capacity_returned",
+        address=0x006C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:battery-plus",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="Charge Cycles",
         key="charge_cycles",
@@ -1493,9 +2760,63 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:counter",
         entity_category="diagnostic",
     ),
+    ModbusRegisterDefinition(
+        name="Number of Synchronizations",
+        key="num_synchronizations",
+        address=0x006F,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:sync",
+        entity_category="diagnostic",
+    ),
+    ModbusRegisterDefinition(
+        name="Number of Discharges",
+        key="num_discharges",
+        address=0x0070,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:battery-minus",
+        entity_category="diagnostic",
+    ),
 ]
 
-BATTERY_MONITOR_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = []
+BATTERY_MONITOR_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
+    ModbusRegisterDefinition(
+        name="Battery Capacity",
+        key="battery_capacity",
+        address=0x0092,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=10000,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="Discharge Floor",
+        key="discharge_floor",
+        address=0x008C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        unit=PERCENTAGE,
+        writable=True,
+        min_value=0,
+        max_value=100,
+        icon="mdi:battery-alert",
+    ),
+    ModbusRegisterDefinition(
+        name="Synchronize Enable",
+        key="synchronize_enable",
+        address=0x00AD,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        writable=True,
+        min_value=0,
+        max_value=1,
+        options={0: "Disabled", 1: "Enabled"},
+        icon="mdi:sync",
+    ),
+]
 
 
 # =============================================================================
@@ -1504,7 +2825,6 @@ BATTERY_MONITOR_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = []
 # =============================================================================
 
 GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (str20, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -1515,7 +2835,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = System Status bitmap (uint16, r)
     ModbusRegisterDefinition(
         name="System Status",
         key="system_status",
@@ -1525,7 +2844,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:router-wireless",
         entity_category="diagnostic",
     ),
-    # Reg 66, addr 0x0041 = System Active Faults Count (uint16, r)
     ModbusRegisterDefinition(
         name="System Active Faults Count",
         key="system_active_faults_count",
@@ -1535,7 +2853,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert-circle",
         entity_category="diagnostic",
     ),
-    # Reg 67, addr 0x0042 = Generator State (uint16, r)
     ModbusRegisterDefinition(
         name="Generator State",
         key="generator_state",
@@ -1545,7 +2862,15 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Off", 1: "On"},
         icon="mdi:engine",
     ),
-    # Reg 69, addr 0x0044 = PV Harvest Power (uint32, r, W)
+    ModbusRegisterDefinition(
+        name="System Active Warnings Count",
+        key="system_active_warnings_count",
+        address=0x0043,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT16,
+        icon="mdi:alert",
+        entity_category="diagnostic",
+    ),
     ModbusRegisterDefinition(
         name="PV Harvest Power",
         key="pv_harvest_power",
@@ -1558,7 +2883,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:solar-power",
     ),
-    # Reg 71, addr 0x0046 = DC Charging Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="DC Charging Power",
         key="dc_charging_power",
@@ -1571,7 +2895,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-charging",
     ),
-    # Reg 73, addr 0x0048 = DC Charging Current (uint32, r, A)
     ModbusRegisterDefinition(
         name="DC Charging Current",
         key="dc_charging_current",
@@ -1586,7 +2909,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:current-dc",
     ),
-    # Reg 75, addr 0x004A = DC Inverting Power (uint32, r, W)
     ModbusRegisterDefinition(
         name="DC Inverting Power",
         key="dc_inverting_power",
@@ -1599,7 +2921,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
-    # Reg 77, addr 0x004C = Grid Voltage (uint32, r, V)
     ModbusRegisterDefinition(
         name="Grid Voltage",
         key="grid_voltage",
@@ -1613,7 +2934,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 79, addr 0x004E = Grid Frequency (uint32, r, Hz)
     ModbusRegisterDefinition(
         name="Grid Frequency",
         key="grid_frequency",
@@ -1627,7 +2947,15 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 83, addr 0x0052 = Grid Input Power (uint32, r, W)
+    ModbusRegisterDefinition(
+        name="Grid Input Apparent Power",
+        key="grid_input_apparent_power",
+        address=0x0050,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:transmission-tower-import",
+    ),
     ModbusRegisterDefinition(
         name="Grid Input Power",
         key="grid_input_power",
@@ -1640,7 +2968,28 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
     ),
-    # Reg 89, addr 0x0058 = Grid Output Power (uint32, r, W)
+    ModbusRegisterDefinition(
+        name="Grid Input Current",
+        key="grid_input_current",
+        address=0x0054,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="Grid Output Apparent Power",
+        key="grid_output_apparent_power",
+        address=0x0056,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        icon="mdi:transmission-tower-export",
+    ),
     ModbusRegisterDefinition(
         name="Grid Output Power",
         key="grid_output_power",
@@ -1653,7 +3002,32 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
     ),
-    # Reg 95, addr 0x005E = Load Power (sint32, r, W)
+    ModbusRegisterDefinition(
+        name="Sell Current",
+        key="sell_current",
+        address=0x005A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:cash",
+    ),
+    ModbusRegisterDefinition(
+        name="AC Generator Power",
+        key="ac_generator_power",
+        address=0x005C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:engine",
+    ),
     ModbusRegisterDefinition(
         name="Load Power",
         key="load_power",
@@ -1666,7 +3040,51 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
-    # Reg 105, addr 0x0068 = Load Voltage (uint32, r, V)
+    ModbusRegisterDefinition(
+        name="Load Output Power",
+        key="load_output_power",
+        address=0x0060,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Load In Power",
+        key="load_in_power",
+        address=0x0062,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Load Apparent Power",
+        key="load_apparent_power",
+        address=0x0064,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="Load Real Power",
+        key="load_real_power",
+        address=0x0066,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:flash",
+    ),
     ModbusRegisterDefinition(
         name="Load Voltage",
         key="load_voltage",
@@ -1680,7 +3098,19 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 109, addr 0x006C = Load Current (sint32, r, A)
+    ModbusRegisterDefinition(
+        name="Load Frequency",
+        key="load_frequency",
+        address=0x006A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.01,
+        precision=2,
+        unit=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="Load Current",
         key="load_current",
@@ -1694,7 +3124,170 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    # Reg 157, addr 0x009C = Battery Voltage (uint32, r, V)
+    ModbusRegisterDefinition(
+        name="XW Grid Power",
+        key="xw_grid_power",
+        address=0x006E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:transmission-tower",
+    ),
+    ModbusRegisterDefinition(
+        name="XW Grid Voltage",
+        key="xw_grid_voltage",
+        address=0x0070,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Grid Frequency",
+        key="xw_grid_frequency",
+        address=0x0072,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.01,
+        precision=2,
+        unit=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Generator Power",
+        key="xw_generator_power",
+        address=0x0074,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:engine",
+    ),
+    ModbusRegisterDefinition(
+        name="XW Generator Voltage",
+        key="xw_generator_voltage",
+        address=0x0076,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Generator Frequency",
+        key="xw_generator_frequency",
+        address=0x0078,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.01,
+        precision=2,
+        unit=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Load Power",
+        key="xw_load_power",
+        address=0x007A,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:flash",
+    ),
+    ModbusRegisterDefinition(
+        name="XW Load Voltage",
+        key="xw_load_voltage",
+        address=0x007C,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=1,
+        unit=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Load Frequency",
+        key="xw_load_frequency",
+        address=0x007E,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.01,
+        precision=2,
+        unit=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="XW Battery Current",
+        key="xw_battery_current",
+        address=0x0080,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.INT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:battery",
+    ),
+    ModbusRegisterDefinition(
+        name="MPPT PV Power",
+        key="mppt_pv_power",
+        address=0x0090,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:solar-power",
+    ),
+    ModbusRegisterDefinition(
+        name="MPPT Battery Current",
+        key="mppt_battery_current",
+        address=0x0092,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        scale=0.001,
+        precision=2,
+        unit=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    ModbusRegisterDefinition(
+        name="MPPT Battery Power",
+        key="mppt_battery_power",
+        address=0x0094,
+        register_type=RegisterType.HOLDING,
+        data_type=DataType.UINT32,
+        count=2,
+        unit=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     ModbusRegisterDefinition(
         name="Battery Voltage",
         key="battery_voltage",
@@ -1709,7 +3302,6 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery",
     ),
-    # Reg 159, addr 0x009E = Battery Temperature (uint32, r, K)
     ModbusRegisterDefinition(
         name="Battery Temperature",
         key="battery_temperature",
@@ -1736,7 +3328,6 @@ GATEWAY_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = []
 # =============================================================================
 
 SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 31, addr 0x001E = Firmware Version (uint32, r)
     ModbusRegisterDefinition(
         name="Firmware Version",
         key="firmware_version",
@@ -1747,7 +3338,6 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:information-outline",
         entity_category="diagnostic",
     ),
-    # Reg 65, addr 0x0040 = Device State (uint16, r)
     ModbusRegisterDefinition(
         name="Device State",
         key="device_state",
@@ -1757,7 +3347,6 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Hibernate", 1: "Power Save", 2: "Safe Mode", 3: "Operating", 4: "Diagnostic Mode", 5: "Remote Power Off", 255: "Data Not Available"},
         icon="mdi:state-machine",
     ),
-    # Reg 66, addr 0x0041 = Device Present (uint16, r)
     ModbusRegisterDefinition(
         name="Device Present",
         key="device_present",
@@ -1767,7 +3356,6 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Inactive", 1: "Active"},
         entity_category="diagnostic",
     ),
-    # Reg 67, addr 0x0042 = Active Faults Flag (uint16, r)
     ModbusRegisterDefinition(
         name="Active Faults",
         key="active_faults",
@@ -1778,7 +3366,6 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         icon="mdi:alert-circle",
         entity_category="diagnostic",
     ),
-    # Reg 68, addr 0x0043 = Active Warnings Flag (uint16, r)
     ModbusRegisterDefinition(
         name="Active Warnings",
         key="active_warnings",
@@ -1792,7 +3379,6 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
 ]
 
 SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
-    # Reg 73, addr 0x0049 = Operating Mode (uint16, rw)
     ModbusRegisterDefinition(
         name="Operating Mode",
         key="operating_mode",
@@ -1803,7 +3389,6 @@ SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={2: "Standby", 3: "Operating"},
         icon="mdi:tune",
     ),
-    # Reg 75, addr 0x004B = Display Brightness (uint16, rw)
     ModbusRegisterDefinition(
         name="Display Brightness",
         key="display_brightness",
@@ -1816,7 +3401,6 @@ SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         max_value=100,
         icon="mdi:brightness-6",
     ),
-    # Reg 76, addr 0x004C = Display Contrast (uint16, rw)
     ModbusRegisterDefinition(
         name="Display Contrast",
         key="display_contrast",
@@ -1829,7 +3413,6 @@ SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         max_value=100,
         icon="mdi:contrast-box",
     ),
-    # Reg 78, addr 0x004E = Button Beep (uint16, rw)
     ModbusRegisterDefinition(
         name="Button Beep",
         key="button_beep",
@@ -1842,7 +3425,6 @@ SCP_CONTROL_REGISTERS: list[ModbusRegisterDefinition] = [
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:volume-high",
     ),
-    # Reg 79, addr 0x004F = Fault Alarm (uint16, rw)
     ModbusRegisterDefinition(
         name="Fault Alarm",
         key="fault_alarm",
