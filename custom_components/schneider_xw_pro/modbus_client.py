@@ -269,36 +269,17 @@ class SchneiderModbusClient:
 
         return value
 
-    async def probe_slave(self, slave_id: int) -> bool:
-        """Probe a slave address to check if a device responds.
+    async def probe_slave(self, slave_id: int) -> str | None:
+        """Probe a slave address by reading its Device Name register.
 
-        Reads the 'Device Present' register (addr 0x0041, common to all devices)
-        to determine if a device exists at the given slave address.
-        """
-        async with self._lock:
-            if not self.connected:
-                if not await self.connect():
-                    return False
+        Device Name (addr 0x0000, str16, 8 registers) is common to ALL
+        Schneider Conext device types per the official Modbus 503 specs.
+        Returns the device name string if a device responds, None otherwise.
 
-            try:
-                assert self._client is not None
-                result = await self._client.read_holding_registers(
-                    address=0x0041,  # Device Present register (common)
-                    count=1,
-                    slave=slave_id,
-                )
-                if result.isError():
-                    return False
-                # Device Present: 1 = Active
-                return result.registers[0] == 1
-            except Exception:
-                return False
-
-    async def read_device_name(self, slave_id: int) -> str | None:
-        """Read the Device Name string register from a device.
-
-        Device Name is at register 1 (addr 0x0000), 8 registers (16 chars).
-        Common across all Schneider Conext devices.
+        NOTE: The 'Device Present' register is NOT at the same address for
+        all device types (0x0041 for XW/AGS/BatMon/SCP, 0x0042 for MPPT),
+        and the Gateway has no Device Present register at all. Reading
+        Device Name is the only universal probe method.
         """
         async with self._lock:
             if not self.connected:
@@ -308,7 +289,7 @@ class SchneiderModbusClient:
             try:
                 assert self._client is not None
                 result = await self._client.read_holding_registers(
-                    address=0x0000,  # Device Name register
+                    address=0x0000,  # Device Name register (universal)
                     count=8,         # 8 registers = 16 chars
                     slave=slave_id,
                 )
@@ -318,9 +299,18 @@ class SchneiderModbusClient:
                 for reg in result.registers:
                     chars.append(chr((reg >> 8) & 0xFF))
                     chars.append(chr(reg & 0xFF))
-                return "".join(chars).strip("\x00").strip()
+                name = "".join(chars).strip("\x00").strip()
+                return name if name else None
             except Exception:
                 return None
+
+    async def read_device_name(self, slave_id: int) -> str | None:
+        """Read the Device Name string register from a device.
+
+        Alias for probe_slave() — both read Device Name at 0x0000.
+        Kept for backward compatibility.
+        """
+        return await self.probe_slave(slave_id)
 
     def _encode_value(
         self,

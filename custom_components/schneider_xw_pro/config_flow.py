@@ -39,8 +39,12 @@ from .modbus_client import SchneiderModbusClient
 
 _LOGGER = logging.getLogger(__name__)
 
-# Timeout per slave probe (seconds)
-_PROBE_TIMEOUT = 2.0
+# Timeout per slave probe (seconds) — devices on local LAN respond fast
+_PROBE_TIMEOUT = 1.0
+
+# Max addresses to scan per range. Schneider spec says devices are assigned
+# sequentially starting from the range start, so we only need to scan a few.
+_MAX_SCAN_PER_RANGE = 5
 
 
 class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -133,7 +137,12 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_discover(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Auto-discover devices by scanning known Modbus slave address ranges."""
+        """Auto-discover devices by scanning known Modbus slave address ranges.
+
+        Uses Device Name register (0x0000) as universal probe — it exists on ALL
+        Schneider Conext device types. Only scans the first few addresses per
+        range since the spec says devices are assigned sequentially.
+        """
         if user_input is not None:
             # User chose to use discovered devices or skip to manual
             if user_input.get("use_discovered", True) and self._discovered_devices:
@@ -147,41 +156,42 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_devices = []
 
         for device_type, start_addr, end_addr in ALL_SCAN_RANGES:
-            for slave_id in range(start_addr, end_addr + 1):
+            # Only scan first _MAX_SCAN_PER_RANGE addresses per range.
+            # Per Schneider spec, devices are assigned sequentially from
+            # the range start, so if address N has no device, N+1 won't either.
+            scan_end = min(start_addr + _MAX_SCAN_PER_RANGE - 1, end_addr)
+            found_gap = False
+            for slave_id in range(start_addr, scan_end + 1):
+                if found_gap:
+                    break
                 try:
-                    present = await asyncio.wait_for(
+                    name = await asyncio.wait_for(
                         self._client.probe_slave(slave_id),
                         timeout=_PROBE_TIMEOUT,
                     )
                 except asyncio.TimeoutError:
+                    found_gap = True
                     continue
 
-                if present:
-                    # Try to read the device name
-                    try:
-                        name = await asyncio.wait_for(
-                            self._client.read_device_name(slave_id),
-                            timeout=_PROBE_TIMEOUT,
-                        )
-                    except asyncio.TimeoutError:
-                        name = None
-
+                if name:
                     device_label = DEVICE_TYPE_LABELS.get(device_type, device_type)
-                    device_name = name or f"{device_label} (Slave {slave_id})"
 
                     self._discovered_devices.append(
                         {
                             CONF_DEVICE_TYPE: device_type,
-                            CONF_DEVICE_NAME: device_name,
+                            CONF_DEVICE_NAME: name,
                             CONF_SLAVE_ID: slave_id,
                         }
                     )
                     _LOGGER.info(
                         "Discovered device: %s (type=%s, slave=%d)",
-                        device_name,
+                        name,
                         device_type,
                         slave_id,
                     )
+                else:
+                    # No device at this address, stop scanning this range
+                    found_gap = True
 
         if self._discovered_devices:
             # Show discovered devices and let user confirm
