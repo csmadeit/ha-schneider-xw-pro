@@ -106,7 +106,6 @@ class SchneiderNumberEntity(
             model=DEVICE_TYPE_LABELS.get(
                 coordinator.device_type, coordinator.device_type
             ),
-            via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
     @property

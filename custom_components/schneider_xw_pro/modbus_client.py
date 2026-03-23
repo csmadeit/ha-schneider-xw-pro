@@ -303,7 +303,15 @@ class SchneiderModbusClient:
                             register.key, register.address, slave_id, result,
                         )
                     else:
-                        value = self._decode_value(register, result.registers)
+                        try:
+                            value = self._decode_value(register, result.registers)
+                        except Exception:
+                            _LOGGER.debug(
+                                "read_all_registers_fresh: decode error for %s "
+                                "from slave %d",
+                                register.key, slave_id, exc_info=True,
+                            )
+                            value = None
                         if value is not None:
                             if register.options and isinstance(value, (int, float)):
                                 int_val = int(value)
@@ -348,8 +356,15 @@ class SchneiderModbusClient:
         self,
         register: ModbusRegisterDefinition,
         raw_registers: list[int],
-    ) -> int | float | str:
+    ) -> int | float | str | None:
         """Decode raw Modbus register values into a Python value."""
+        if len(raw_registers) < register.count:
+            _LOGGER.debug(
+                "decode: expected %d registers for %s, got %d",
+                register.count, register.key, len(raw_registers),
+            )
+            return None
+
         value: int | float
         if register.data_type == DataType.UINT16:
             value = raw_registers[0]
