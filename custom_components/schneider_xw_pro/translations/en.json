@@ -40,7 +40,8 @@
       "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "This gateway is already configured."
+      "already_configured": "This gateway is already configured.",
+      "reconfigure_successful": "Devices updated successfully. The integration will reload with the new device list."
     }
   },
   "options": {

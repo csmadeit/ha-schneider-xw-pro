@@ -65,6 +65,7 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         self._scan_interval: int = DEFAULT_SCAN_INTERVAL
         self._devices: list[dict[str, Any]] = []
         self._discovered_devices: list[dict[str, Any]] = []
+        self._reconfigure_entry: ConfigEntry | None = None
 
     @staticmethod
     @callback
@@ -85,10 +86,16 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
             )
 
-            # Prevent duplicate entries for the same gateway
+            # Check for existing entry with same gateway.
+            # Instead of aborting with "already configured", we allow
+            # re-discovery so users can add/update devices without
+            # removing the entire installation.
             unique_id = f"schneider_xw_pro_{self._host}_{self._port}"
             await self.async_set_unique_id(unique_id)
-            self._abort_if_unique_id_configured()
+            for entry in self._async_current_entries():
+                if entry.unique_id == unique_id:
+                    self._reconfigure_entry = entry
+                    break
 
             # Validate the gateway is reachable by probing slave 1
             # using a fresh connection (open -> read -> close).
@@ -299,17 +306,31 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     def _create_entry(self) -> FlowResult:
-        """Create the config entry."""
-        title = f"Schneider XW Pro ({self._host}:{self._port})"
+        """Create or update the config entry."""
+        new_data = {
+            CONF_HOST: self._host,
+            CONF_PORT: self._port,
+            CONF_SCAN_INTERVAL: self._scan_interval,
+            CONF_DEVICES: self._devices,
+        }
 
+        if self._reconfigure_entry is not None:
+            # Update existing entry and reload it
+            self.hass.config_entries.async_update_entry(
+                self._reconfigure_entry,
+                data=new_data,
+            )
+            self.hass.async_create_task(
+                self.hass.config_entries.async_reload(
+                    self._reconfigure_entry.entry_id
+                )
+            )
+            return self.async_abort(reason="reconfigure_successful")
+
+        title = f"Schneider XW Pro ({self._host}:{self._port})"
         return self.async_create_entry(
             title=title,
-            data={
-                CONF_HOST: self._host,
-                CONF_PORT: self._port,
-                CONF_SCAN_INTERVAL: self._scan_interval,
-                CONF_DEVICES: self._devices,
-            },
+            data=new_data,
         )
 
 
