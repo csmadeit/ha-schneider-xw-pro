@@ -259,11 +259,68 @@ class SchneiderModbusClient:
         else:
             value = raw_registers[0]
 
-        # Apply scale
+        # Apply scale and offset (e.g., Kelvin to Celsius: scale=0.01, offset=-273.0)
         if register.scale != 1.0:
-            value = round(value * register.scale, register.precision)
+            value = value * register.scale
+        if register.offset != 0.0:
+            value = value + register.offset
+        if register.scale != 1.0 or register.offset != 0.0:
+            value = round(value, register.precision)
 
         return value
+
+    async def probe_slave(self, slave_id: int) -> bool:
+        """Probe a slave address to check if a device responds.
+
+        Reads the 'Device Present' register (addr 0x0041, common to all devices)
+        to determine if a device exists at the given slave address.
+        """
+        async with self._lock:
+            if not self.connected:
+                if not await self.connect():
+                    return False
+
+            try:
+                assert self._client is not None
+                result = await self._client.read_holding_registers(
+                    address=0x0041,  # Device Present register (common)
+                    count=1,
+                    slave=slave_id,
+                )
+                if result.isError():
+                    return False
+                # Device Present: 1 = Active
+                return result.registers[0] == 1
+            except Exception:
+                return False
+
+    async def read_device_name(self, slave_id: int) -> str | None:
+        """Read the Device Name string register from a device.
+
+        Device Name is at register 1 (addr 0x0000), 8 registers (16 chars).
+        Common across all Schneider Conext devices.
+        """
+        async with self._lock:
+            if not self.connected:
+                if not await self.connect():
+                    return None
+
+            try:
+                assert self._client is not None
+                result = await self._client.read_holding_registers(
+                    address=0x0000,  # Device Name register
+                    count=8,         # 8 registers = 16 chars
+                    slave=slave_id,
+                )
+                if result.isError():
+                    return None
+                chars: list[str] = []
+                for reg in result.registers:
+                    chars.append(chr((reg >> 8) & 0xFF))
+                    chars.append(chr(reg & 0xFF))
+                return "".join(chars).strip("\x00").strip()
+            except Exception:
+                return None
 
     def _encode_value(
         self,
@@ -271,11 +328,14 @@ class SchneiderModbusClient:
         value: Any,
     ) -> list[int]:
         """Encode a Python value into raw Modbus register values."""
-        # Undo scaling
+        # Undo offset and scaling
+        raw_float = float(value)
+        if register.offset != 0.0:
+            raw_float = raw_float - register.offset
         if register.scale != 1.0:
-            raw_value = round(float(value) / register.scale)
+            raw_value = round(raw_float / register.scale)
         else:
-            raw_value = int(value)
+            raw_value = int(raw_float)
 
         if register.data_type in (DataType.UINT16, DataType.INT16):
             if register.data_type == DataType.INT16 and raw_value < 0:
