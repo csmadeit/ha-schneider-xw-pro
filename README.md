@@ -1,93 +1,148 @@
-# homeassistant-modules
+# Schneider Electric Conext XW Pro -- Home Assistant Integration
 
+A full HACS-compatible custom integration for the Schneider Electric Conext XW Pro solar inverter/charger ecosystem. Supports **read and write** Modbus TCP operations through the Conext Gateway / InsightHome / InsightFacility.
 
+**Status:** Register addresses verified against official Schneider Modbus specs. Device auto-discovery implemented. Ready for hardware testing.
 
-## Getting started
+---
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Session Details
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **Created by:** Chris S (@csmadeit) via Devin AI
+- **Session:** [Devin Session](https://app.devin.ai/sessions/4503fa9209474d858e2a17c069e0e1ef)
+- **Repository:** [gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro](https://gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro)
+- **Date:** 2026-03-14 (initial), 2026-03-22 (register rewrite + auto-discovery)
 
-## Add your files
+---
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Supported Devices
+
+| Device | Type | Slave Address Range | Spec Document |
+|--------|------|-------------------|---------------|
+| Conext XW Pro Inverter/Charger | xw_pro | 10-29 | 990-6268B |
+| Conext MPPT 60 Charge Controller | mppt | 30-49 | 990-6269A |
+| Conext MPPT 80/100 600 Charge Controller | mppt | 170-189 | 990-6270A |
+| Conext AGS (Auto Generator Start) | ags | 50-69 | 990-6274A |
+| Conext Battery Monitor | battery_monitor | 190-209 | 990-6278A |
+| Conext Gateway / InsightHome | gateway | 1 | 990-6271B |
+| Conext System Control Panel (SCP) | scp | 70-89 | 990-6272A |
+
+---
+
+## Features
+
+### Device Auto-Discovery
+The integration automatically scans all known Modbus slave address ranges to find connected devices. No need to manually enter slave addresses.
+
+### Read Sensors (107 registers)
+- DC voltage, current, power (battery side)
+- AC input/output voltage, current, power, frequency
+- PV voltage, current, power (MPPT)
+- Battery SOC, temperature
+- System totals (PV, load, grid, battery)
+- Device state, faults, warnings
+- Energy counters (daily and lifetime)
+
+### Write Controls (28 registers)
+- Inverter/charger/MPPT enable/disable
+- Force charge mode (off/bulk/float)
+- Voltage setpoints (absorb, float, equalize, LBCO, grid support)
+- Current limits (max charge, max AC input)
+- Operating mode, AC input mode
+- SCP display brightness, contrast, beep, alarm
+
+### No Authentication Required
+Modbus TCP is unauthenticated by design per the official protocol spec. The integration connects directly to the gateway's Modbus port (default 503).
+
+---
+
+## Files
+
+### Integration Core
+
+| File | Purpose |
+|------|---------|
+| `__init__.py` | Integration setup, config entry handling, multi-device coordinator init |
+| `const.py` | Constants: domain, device types, slave addresses, scan ranges |
+| `manifest.json` | HACS manifest with metadata and pymodbus dependency |
+| `config_flow.py` | Config flow with auto-discovery + manual fallback |
+| `coordinator.py` | DataUpdateCoordinator per device -- polls Modbus registers |
+| `modbus_client.py` | pymodbus async TCP client with read/write/probe/discovery |
+| `registers.py` | Complete Modbus register definitions (135 registers, 6 device types) |
+
+### Entity Platforms
+
+| File | Purpose |
+|------|---------|
+| `sensor.py` | Read-only sensor entities |
+| `switch.py` | On/off switches for binary controls |
+| `select.py` | Select entities for mode controls |
+| `number.py` | Number entities for setpoints |
+
+---
+
+## Module Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules.git
-git branch -M main
-git push -uf origin main
+ha-schneider-xw-pro/
++-- README.md
++-- SPECIFICATION.md
++-- hacs.json
++-- custom_components/
+    +-- schneider_xw_pro/
+        +-- __init__.py
+        +-- const.py
+        +-- manifest.json
+        +-- config_flow.py
+        +-- coordinator.py
+        +-- modbus_client.py
+        +-- registers.py
+        +-- sensor.py
+        +-- switch.py
+        +-- select.py
+        +-- number.py
+        +-- strings.json
+        +-- translations/
+            +-- en.json
 ```
 
-## Integrate with your tools
-
-* [Set up project integrations](https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### HACS (Recommended)
+1. Open HACS in Home Assistant
+2. Go to **Integrations** -> **Custom Repositories**
+3. Add this repository URL
+4. Install **Schneider Electric Conext XW Pro**
+5. Restart Home Assistant
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### Manual
+1. Copy `custom_components/schneider_xw_pro/` to your HA `custom_components/` directory
+2. Restart Home Assistant
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Configuration
+1. Go to **Settings** -> **Devices & Services** -> **Add Integration**
+2. Search for "Schneider Electric Conext XW Pro"
+3. Enter your Gateway/InsightHome IP and port (default: 503)
+4. The integration will auto-discover connected devices
+5. Confirm the discovered devices or manually add them
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+---
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## Audit Log
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+### Audit 1 -- 2026-03-14
+- Added asyncio.Lock on shared Modbus client
+- Fixed double disconnect in config_flow
+- Fixed select.py filter for 2-option non-binary registers
+- Removed unused imports
+- Fixed hacs.json zip_release flag
+- Added graceful device init failure handling
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Audit 2 -- 2026-03-22 (Register Rewrite + Auto-Discovery)
+- **registers.py**: Complete rewrite with correct addresses from official Schneider Modbus 503 specs. 107 sensor + 28 control registers across 6 device types.
+- **const.py**: Fixed critical slave address errors (AGS: 20->50, Battery Monitor: 30->190, SCP: 40->70). Added slave address ranges for discovery.
+- **modbus_client.py**: Added offset support for temperature conversion (Kelvin to Celsius). Added probe_slave() and read_device_name() for discovery.
+- **config_flow.py**: Added device auto-discovery via Modbus slave address scanning. Added connection validation. Documented that Modbus TCP has no authentication.
+- **SCP device type**: Expanded from 1 register to 10 (5 sensor + 5 control).

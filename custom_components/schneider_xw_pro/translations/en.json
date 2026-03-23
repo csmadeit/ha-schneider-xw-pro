@@ -1,0 +1,56 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Schneider Conext Gateway",
+        "description": "Enter the IP address and port of your Conext Gateway, InsightHome, or InsightFacility device. Default port is 503 for InsightHome/InsightFacility, 502 for ComBox. No authentication is required (Modbus TCP is unauthenticated by design).",
+        "data": {
+          "host": "Host / IP Address",
+          "port": "Port",
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      },
+      "discover": {
+        "title": "Discovered Devices",
+        "description": "Found {device_count} device(s) on your Schneider Conext system:\n\n{device_list}\n\nUse these devices, or switch to manual setup?",
+        "data": {
+          "use_discovered": "Use discovered devices"
+        }
+      },
+      "devices": {
+        "title": "Add a Device Manually",
+        "description": "Add a Schneider Conext device. Select the device type and enter its Modbus slave address. See the official Schneider Modbus specs for valid address ranges.",
+        "data": {
+          "device_type": "Device Type",
+          "device_name": "Device Name (optional)",
+          "slave_id": "Modbus Slave Address"
+        }
+      },
+      "add_another": {
+        "title": "Add Another Device?",
+        "description": "You have configured {device_count} device(s). Would you like to add another?",
+        "data": {
+          "add_another": "Add another device"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the Schneider Gateway. Please check the host and port.",
+      "no_devices": "No devices were discovered. Please add devices manually.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This gateway is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Schneider XW Pro Options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    }
+  }
+}
