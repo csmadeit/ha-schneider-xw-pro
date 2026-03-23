@@ -11,7 +11,6 @@ is unauthenticated by design.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -39,8 +38,11 @@ from .modbus_client import SchneiderModbusClient
 
 _LOGGER = logging.getLogger(__name__)
 
-# Timeout per slave probe (seconds) — devices on local LAN respond fast
-_PROBE_TIMEOUT = 1.0
+# Modbus response timeout for discovery probes (seconds).
+# Devices on local LAN respond within milliseconds; 3s is generous.
+# This is set on the pymodbus client itself (NOT asyncio.wait_for) to avoid
+# corrupting the client's internal state when a probe is cancelled mid-flight.
+_DISCOVERY_TIMEOUT = 3
 
 # Max addresses to scan per range. Schneider spec says devices are assigned
 # sequentially starting from the range start, so we only need to scan a few.
@@ -85,12 +87,17 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
-            # Test connection and validate by reading gateway device name
-            client = SchneiderModbusClient(self._host, self._port)
+            # Create client with short timeout for discovery probes.
+            # Using the pymodbus client's own timeout instead of
+            # asyncio.wait_for, which can corrupt client state if it
+            # cancels a read mid-flight.
+            client = SchneiderModbusClient(
+                self._host, self._port, timeout=_DISCOVERY_TIMEOUT
+            )
             try:
                 connected = await client.connect()
                 if connected:
-                    # Validate the connection by reading the gateway's device name
+                    # Validate by reading the gateway's device name (slave 1)
                     device_name = await client.read_device_name(slave_id=1)
                     if device_name:
                         _LOGGER.info(
@@ -101,8 +108,9 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                         )
                     else:
                         _LOGGER.warning(
-                            "Connected to %s:%s but could not read gateway device name. "
-                            "Proceeding anyway.",
+                            "Connected to %s:%s but could not read gateway "
+                            "device name (slave 1). Will still attempt "
+                            "discovery on other slave addresses.",
                             self._host,
                             self._port,
                         )
@@ -111,7 +119,8 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                     return await self.async_step_discover()
                 errors["base"] = "cannot_connect"
             except Exception:
-                _LOGGER.exception("Error testing connection")
+                _LOGGER.exception("Error testing connection to %s:%s",
+                                  self._host, self._port)
                 errors["base"] = "cannot_connect"
 
             # Disconnect on failure
@@ -155,27 +164,26 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         assert self._client is not None
         self._discovered_devices = []
 
+        _LOGGER.info(
+            "Starting device discovery on %s:%s (timeout=%ds)",
+            self._host, self._port, _DISCOVERY_TIMEOUT,
+        )
+
         for device_type, start_addr, end_addr in ALL_SCAN_RANGES:
             # Only scan first _MAX_SCAN_PER_RANGE addresses per range.
             # Per Schneider spec, devices are assigned sequentially from
             # the range start, so if address N has no device, N+1 won't either.
             scan_end = min(start_addr + _MAX_SCAN_PER_RANGE - 1, end_addr)
-            found_gap = False
+            device_label = DEVICE_TYPE_LABELS.get(device_type, device_type)
+            _LOGGER.debug(
+                "Scanning %s range: slave %d-%d", device_label, start_addr, scan_end
+            )
             for slave_id in range(start_addr, scan_end + 1):
-                if found_gap:
-                    break
-                try:
-                    name = await asyncio.wait_for(
-                        self._client.probe_slave(slave_id),
-                        timeout=_PROBE_TIMEOUT,
-                    )
-                except asyncio.TimeoutError:
-                    found_gap = True
-                    continue
+                # probe_slave uses the client's own timeout (set to
+                # _DISCOVERY_TIMEOUT) — no asyncio.wait_for needed.
+                name = await self._client.probe_slave(slave_id)
 
                 if name:
-                    device_label = DEVICE_TYPE_LABELS.get(device_type, device_type)
-
                     self._discovered_devices.append(
                         {
                             CONF_DEVICE_TYPE: device_type,
@@ -191,7 +199,15 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                 else:
                     # No device at this address, stop scanning this range
-                    found_gap = True
+                    _LOGGER.debug(
+                        "No device at slave %d, stopping %s range scan",
+                        slave_id, device_label,
+                    )
+                    break
+
+        _LOGGER.info(
+            "Discovery complete: found %d device(s)", len(self._discovered_devices)
+        )
 
         if self._discovered_devices:
             # Show discovered devices and let user confirm
