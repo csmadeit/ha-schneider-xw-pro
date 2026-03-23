@@ -33,6 +33,13 @@ _LOGGER = logging.getLogger(__name__)
 # Matches the proven conext-api project: sleep(0.1) between every read.
 _READ_DELAY = 0.1
 
+# Number of retry attempts for failed register reads.
+# The Schneider Gateway can drop reads under load (many registers,
+# multiple devices).  Retrying with a small back-off recovers most
+# transient failures.
+_MAX_RETRIES = 3
+_RETRY_DELAY = 0.15
+
 
 class SchneiderModbusClient:
     """Manages Modbus TCP communication with a Schneider Conext Gateway."""
@@ -196,20 +203,34 @@ class SchneiderModbusClient:
 
             for register in registers:
                 try:
-                    if register.register_type == RegisterType.INPUT:
-                        regs = client.read_input_registers(
-                            register.address, register.count,
-                        )
-                    else:
-                        regs = client.read_holding_registers(
-                            register.address, register.count,
-                        )
+                    regs = None
+                    for attempt in range(_MAX_RETRIES):
+                        if register.register_type == RegisterType.INPUT:
+                            regs = client.read_input_registers(
+                                register.address, register.count,
+                            )
+                        else:
+                            regs = client.read_holding_registers(
+                                register.address, register.count,
+                            )
+                        if regs is not None:
+                            break
+                        # Back off before retry
+                        if attempt < _MAX_RETRIES - 1:
+                            _LOGGER.debug(
+                                "read_all_registers_fresh: retry %d for %s "
+                                "(addr=0x%04X) from slave %d",
+                                attempt + 1, register.key,
+                                register.address, slave_id,
+                            )
+                            time.sleep(_RETRY_DELAY)
 
                     if regs is None:
                         _LOGGER.debug(
                             "read_all_registers_fresh: no response for %s "
-                            "(addr=0x%04X) from slave %d",
+                            "(addr=0x%04X) from slave %d after %d attempts",
                             register.key, register.address, slave_id,
+                            _MAX_RETRIES,
                         )
                     else:
                         try:
