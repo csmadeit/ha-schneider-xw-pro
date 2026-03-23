@@ -11,6 +11,7 @@ is unauthenticated by design.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -39,10 +40,13 @@ from .modbus_client import SchneiderModbusClient
 _LOGGER = logging.getLogger(__name__)
 
 # Modbus response timeout for discovery probes (seconds).
-# Devices on local LAN respond within milliseconds; 3s is generous.
-# This is set on the pymodbus client itself (NOT asyncio.wait_for) to avoid
-# corrupting the client's internal state when a probe is cancelled mid-flight.
-_DISCOVERY_TIMEOUT = 3
+# The Schneider Conext Gateway is embedded hardware; 10s is safe.
+# The proven conext-api project uses 30s — we use 10s as a compromise.
+_DISCOVERY_TIMEOUT = 10
+
+# Delay between probes in seconds.  The gateway has limited TCP resources;
+# opening/closing connections too fast can overwhelm it.
+_PROBE_DELAY = 0.15
 
 # Max addresses to scan per range. Schneider spec says devices are assigned
 # sequentially starting from the range start, so we only need to scan a few.
@@ -61,7 +65,6 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         self._scan_interval: int = DEFAULT_SCAN_INTERVAL
         self._devices: list[dict[str, Any]] = []
         self._discovered_devices: list[dict[str, Any]] = []
-        self._client: SchneiderModbusClient | None = None
 
     @staticmethod
     @callback
@@ -87,44 +90,36 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
-            # Create client with short timeout for discovery probes.
-            # Using the pymodbus client's own timeout instead of
-            # asyncio.wait_for, which can corrupt client state if it
-            # cancels a read mid-flight.
-            client = SchneiderModbusClient(
-                self._host, self._port, timeout=_DISCOVERY_TIMEOUT
-            )
+            # Validate the gateway is reachable by probing slave 1
+            # using a fresh connection (open -> read -> close).
+            # The Schneider Gateway is embedded hardware with limited TCP
+            # resources.  A fresh connection per probe is the only
+            # reliable pattern (matches the proven conext-api project).
             try:
-                connected = await client.connect()
-                if connected:
-                    # Validate by reading the gateway's device name (slave 1)
-                    device_name = await client.read_device_name(slave_id=1)
-                    if device_name:
-                        _LOGGER.info(
-                            "Connected to gateway: %s at %s:%s",
-                            device_name,
-                            self._host,
-                            self._port,
-                        )
-                    else:
-                        _LOGGER.warning(
-                            "Connected to %s:%s but could not read gateway "
-                            "device name (slave 1). Will still attempt "
-                            "discovery on other slave addresses.",
-                            self._host,
-                            self._port,
-                        )
-                    self._client = client
-                    # Proceed to discovery step
-                    return await self.async_step_discover()
-                errors["base"] = "cannot_connect"
+                gateway_name = await SchneiderModbusClient.probe_slave_fresh(
+                    self._host, self._port, slave_id=1,
+                    timeout=_DISCOVERY_TIMEOUT,
+                )
+                if gateway_name:
+                    _LOGGER.info(
+                        "Connected to gateway: %s at %s:%s",
+                        gateway_name, self._host, self._port,
+                    )
+                else:
+                    _LOGGER.warning(
+                        "TCP connect to %s:%s succeeded but could not "
+                        "read gateway device name (slave 1). Will still "
+                        "attempt discovery on other slave addresses.",
+                        self._host, self._port,
+                    )
+                # Proceed to discovery step — no persistent client needed
+                return await self.async_step_discover()
             except Exception:
-                _LOGGER.exception("Error testing connection to %s:%s",
-                                  self._host, self._port)
+                _LOGGER.exception(
+                    "Error testing connection to %s:%s",
+                    self._host, self._port,
+                )
                 errors["base"] = "cannot_connect"
-
-            # Disconnect on failure
-            await client.disconnect()
 
         return self.async_show_form(
             step_id="user",
@@ -160,13 +155,20 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             # User wants to manually add devices
             return await self.async_step_devices()
 
-        # Perform the scan
-        assert self._client is not None
+        # Perform the scan using a FRESH TCP connection per probe.
+        # The Schneider Conext Gateway is embedded hardware with limited
+        # TCP resources.  Re-using a single persistent connection for
+        # rapid-fire probes across many slave IDs overwhelms the gateway
+        # and causes it to stop responding.  Opening a new connection per
+        # probe (with a small delay between probes) mirrors the proven
+        # conext-api project (pyModbusTCP auto_open/auto_close pattern).
         self._discovered_devices = []
 
         _LOGGER.info(
-            "Starting device discovery on %s:%s (timeout=%ds)",
-            self._host, self._port, _DISCOVERY_TIMEOUT,
+            "Starting device discovery on %s:%s "
+            "(timeout=%ds, delay=%.2fs, max_per_range=%d)",
+            self._host, self._port,
+            _DISCOVERY_TIMEOUT, _PROBE_DELAY, _MAX_SCAN_PER_RANGE,
         )
 
         for device_type, start_addr, end_addr in ALL_SCAN_RANGES:
@@ -179,9 +181,12 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                 "Scanning %s range: slave %d-%d", device_label, start_addr, scan_end
             )
             for slave_id in range(start_addr, scan_end + 1):
-                # probe_slave uses the client's own timeout (set to
-                # _DISCOVERY_TIMEOUT) — no asyncio.wait_for needed.
-                name = await self._client.probe_slave(slave_id)
+                # Fresh connection per probe — the only reliable pattern
+                # for the Schneider Gateway's embedded TCP stack.
+                name = await SchneiderModbusClient.probe_slave_fresh(
+                    self._host, self._port, slave_id,
+                    timeout=_DISCOVERY_TIMEOUT,
+                )
 
                 if name:
                     self._discovered_devices.append(
@@ -193,9 +198,7 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                     _LOGGER.info(
                         "Discovered device: %s (type=%s, slave=%d)",
-                        name,
-                        device_type,
-                        slave_id,
+                        name, device_type, slave_id,
                     )
                 else:
                     # No device at this address, stop scanning this range
@@ -204,6 +207,9 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                         slave_id, device_label,
                     )
                     break
+
+                # Small delay between probes to let the gateway recover
+                await asyncio.sleep(_PROBE_DELAY)
 
         _LOGGER.info(
             "Discovery complete: found %d device(s)", len(self._discovered_devices)
@@ -294,10 +300,6 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _create_entry(self) -> FlowResult:
         """Create the config entry."""
-        # Clean up the client - it will be re-created during setup
-        if self._client is not None:
-            self.hass.async_create_task(self._client.disconnect())
-
         title = f"Schneider XW Pro ({self._host}:{self._port})"
 
         return self.async_create_entry(
