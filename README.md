@@ -1,14 +1,8 @@
-# Home Assistant Modules
-
-Third-party Home Assistant custom integration modules maintained by MadeIT.
-
-## Modules
-
-### Schneider Electric Conext XW Pro (`schneider_xw_pro`)
+# Schneider Electric Conext XW Pro -- Home Assistant Integration
 
 A full HACS-compatible custom integration for the Schneider Electric Conext XW Pro solar inverter/charger ecosystem. Supports **read and write** Modbus TCP operations through the Conext Gateway / InsightHome / InsightFacility.
 
-**Status:** Initial implementation complete — ready for hardware testing.
+**Status:** Register addresses verified against official Schneider Modbus specs. Device auto-discovery implemented. Ready for hardware testing.
 
 ---
 
@@ -16,114 +10,101 @@ A full HACS-compatible custom integration for the Schneider Electric Conext XW P
 
 - **Created by:** Chris S (@csmadeit) via Devin AI
 - **Session:** [Devin Session](https://app.devin.ai/sessions/4503fa9209474d858e2a17c069e0e1ef)
-- **Repository:** [gitlab.cmhtransfer.com/ai-test/homeassistant-modules](https://gitlab.cmhtransfer.com/ai-test/homeassistant-modules)
-- **Date:** 2026-03-14
+- **Repository:** [gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro](https://gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro)
+- **Date:** 2026-03-14 (initial), 2026-03-22 (register rewrite + auto-discovery)
 
 ---
 
-## Schneider XW Pro Integration — Files Created
+## Supported Devices
 
-### Backend (Integration Core)
+| Device | Type | Slave Address Range | Spec Document |
+|--------|------|-------------------|---------------|
+| Conext XW Pro Inverter/Charger | xw_pro | 10-29 | 990-6268B |
+| Conext MPPT 60 Charge Controller | mppt | 30-49 | 990-6269A |
+| Conext MPPT 80/100 600 Charge Controller | mppt | 170-189 | 990-6270A |
+| Conext AGS (Auto Generator Start) | ags | 50-69 | 990-6274A |
+| Conext Battery Monitor | battery_monitor | 190-209 | 990-6278A |
+| Conext Gateway / InsightHome | gateway | 1 | 990-6271B |
+| Conext System Control Panel (SCP) | scp | 70-89 | 990-6272A |
+
+---
+
+## Features
+
+### Device Auto-Discovery
+The integration automatically scans all known Modbus slave address ranges to find connected devices. No need to manually enter slave addresses.
+
+### Read Sensors (107 registers)
+- DC voltage, current, power (battery side)
+- AC input/output voltage, current, power, frequency
+- PV voltage, current, power (MPPT)
+- Battery SOC, temperature
+- System totals (PV, load, grid, battery)
+- Device state, faults, warnings
+- Energy counters (daily and lifetime)
+
+### Write Controls (28 registers)
+- Inverter/charger/MPPT enable/disable
+- Force charge mode (off/bulk/float)
+- Voltage setpoints (absorb, float, equalize, LBCO, grid support)
+- Current limits (max charge, max AC input)
+- Operating mode, AC input mode
+- SCP display brightness, contrast, beep, alarm
+
+### No Authentication Required
+Modbus TCP is unauthenticated by design per the official protocol spec. The integration connects directly to the gateway's Modbus port (default 503).
+
+---
+
+## Files
+
+### Integration Core
 
 | File | Purpose |
 |------|---------|
-| `custom_components/schneider_xw_pro/__init__.py` | Integration setup, config entry handling, multi-device coordinator init |
-| `custom_components/schneider_xw_pro/const.py` | Constants: domain, device types, default slave addresses, config keys |
-| `custom_components/schneider_xw_pro/manifest.json` | HACS manifest with metadata and pymodbus dependency |
-| `custom_components/schneider_xw_pro/config_flow.py` | UI config flow for gateway connection + multi-device setup |
-| `custom_components/schneider_xw_pro/coordinator.py` | DataUpdateCoordinator per device — polls Modbus registers |
-| `custom_components/schneider_xw_pro/modbus_client.py` | pymodbus async TCP client wrapper with read/write/encode/decode |
-| `custom_components/schneider_xw_pro/registers.py` | Complete Modbus register definitions for all device types |
+| `__init__.py` | Integration setup, config entry handling, multi-device coordinator init |
+| `const.py` | Constants: domain, device types, slave addresses, scan ranges |
+| `manifest.json` | HACS manifest with metadata and pymodbus dependency |
+| `config_flow.py` | Config flow with auto-discovery + manual fallback |
+| `coordinator.py` | DataUpdateCoordinator per device -- polls Modbus registers |
+| `modbus_client.py` | pymodbus async TCP client with read/write/probe/discovery |
+| `registers.py` | Complete Modbus register definitions (135 registers, 6 device types) |
 
-### Entity Platforms (UI)
-
-| File | Purpose |
-|------|---------|
-| `custom_components/schneider_xw_pro/sensor.py` | Read-only sensor entities (voltage, current, power, SOC, energy, etc.) |
-| `custom_components/schneider_xw_pro/switch.py` | On/off switches (inverter enable, charger enable, search mode, etc.) |
-| `custom_components/schneider_xw_pro/select.py` | Select entities for mode controls (charge mode, AC input mode, EPC mode) |
-| `custom_components/schneider_xw_pro/number.py` | Number entities for setpoints (voltage, current limits) |
-
-### Configuration & Translations
+### Entity Platforms
 
 | File | Purpose |
 |------|---------|
-| `custom_components/schneider_xw_pro/strings.json` | Config flow strings |
-| `custom_components/schneider_xw_pro/translations/en.json` | English translations |
-| `hacs.json` | HACS repository metadata |
+| `sensor.py` | Read-only sensor entities |
+| `switch.py` | On/off switches for binary controls |
+| `select.py` | Select entities for mode controls |
+| `number.py` | Number entities for setpoints |
 
 ---
 
 ## Module Structure
 
 ```
-homeassistant-modules/
-├── README.md                          # This file
-├── SPECIFICATION.md                   # Full module specification
-├── hacs.json                          # HACS repo config
-└── custom_components/
-    └── schneider_xw_pro/
-        ├── __init__.py                # Integration setup
-        ├── const.py                   # Constants & defaults
-        ├── manifest.json              # HA manifest
-        ├── config_flow.py             # UI config flow
-        ├── coordinator.py             # Data update coordinator
-        ├── modbus_client.py           # Modbus TCP client
-        ├── registers.py               # Register definitions (all devices)
-        ├── sensor.py                  # Sensor entities
-        ├── switch.py                  # Switch entities
-        ├── select.py                  # Select entities
-        ├── number.py                  # Number entities
-        ├── strings.json               # UI strings
-        └── translations/
-            └── en.json                # English translations
+ha-schneider-xw-pro/
++-- README.md
++-- SPECIFICATION.md
++-- hacs.json
++-- custom_components/
+    +-- schneider_xw_pro/
+        +-- __init__.py
+        +-- const.py
+        +-- manifest.json
+        +-- config_flow.py
+        +-- coordinator.py
+        +-- modbus_client.py
+        +-- registers.py
+        +-- sensor.py
+        +-- switch.py
+        +-- select.py
+        +-- number.py
+        +-- strings.json
+        +-- translations/
+            +-- en.json
 ```
-
----
-
-## What's Ready vs What Needs Implementation
-
-### Ready (Implemented)
-- Full HACS-compatible integration structure
-- Config flow with multi-device support (gateway IP, port, slave addresses)
-- Modbus TCP client with async read/write support (pymodbus)
-- Register definitions for XW Pro, MPPT, AGS, Battery Monitor, Gateway, SCP
-- Sensor entities for all input registers (voltage, current, power, SOC, energy, temperature, status)
-- Switch entities for binary controls (inverter/charger/search mode/grid support enable/disable)
-- Select entities for mode controls (charge mode, AC input mode, EPC mode)
-- Number entities for setpoints (absorb/float voltage, max charge current, grid support voltage, LBCO, EPC power)
-- Device registry integration (each device appears separately in HA)
-- Energy dashboard compatible sensors (state_class: total_increasing)
-- Options flow for scan interval adjustment
-
-### Needs Testing / Refinement
-- Hardware testing with actual Conext Gateway/InsightHome
-- Verification of exact Modbus register addresses against physical hardware
-- Fine-tuning of register scales, offsets, and data types based on actual device responses
-- InsightCloud API integration (Phase 4 — API docs not publicly available)
-- Additional device types if discovered during testing
-
----
-
-## Audit Log
-
-### Audit 1 — 2026-03-14
-
-**Findings & Fixes:**
-
-| # | Severity | Issue | Fix |
-|---|----------|-------|-----|
-| 1 | CRITICAL | No asyncio.Lock on shared Modbus client — concurrent coordinator polls could corrupt TCP stream | Added `asyncio.Lock` around all `read_register` and `write_register` calls |
-| 2 | BUG | Double `disconnect()` in config_flow on success path (called explicitly then again in `finally`) | Removed redundant early `disconnect()`, rely on `finally` block only |
-| 3 | BUG | `select.py` missed 2-option non-binary registers (e.g. keys {0, 2}) — fell through both switch and select filters | Changed filter to "writable + has options + NOT binary {0,1}" instead of "> 2 options" |
-| 4 | CODE | Unused `from typing import Any` in `__init__.py` | Removed |
-| 5 | CODE | Unused `callback` import in `select.py` and `number.py` | Removed |
-| 6 | CODE | Unused `NumberDeviceClass` import in `registers.py` | Removed |
-| 7 | CODE | `registers.py` bottom-of-file import not annotated | Added `# noqa: E402` and explanatory comment, sorted alphabetically |
-| 8 | IMPROVEMENT | `hacs.json` had `zip_release: true` with no CI to produce zips | Removed `zip_release` and `filename` fields |
-| 9 | IMPROVEMENT | If any device fails initial Modbus poll, entire integration setup fails | Wrapped `async_config_entry_first_refresh()` in try/except — logs warning, retries on next poll |
-
-**No security issues found.** No hardcoded secrets, no credential exposure, proper input validation via voluptuous schemas.
 
 ---
 
@@ -144,4 +125,24 @@ homeassistant-modules/
 1. Go to **Settings** -> **Devices & Services** -> **Add Integration**
 2. Search for "Schneider Electric Conext XW Pro"
 3. Enter your Gateway/InsightHome IP and port (default: 503)
-4. Add each device (inverter, MPPT, AGS, etc.) with its Modbus slave address
+4. The integration will auto-discover connected devices
+5. Confirm the discovered devices or manually add them
+
+---
+
+## Audit Log
+
+### Audit 1 -- 2026-03-14
+- Added asyncio.Lock on shared Modbus client
+- Fixed double disconnect in config_flow
+- Fixed select.py filter for 2-option non-binary registers
+- Removed unused imports
+- Fixed hacs.json zip_release flag
+- Added graceful device init failure handling
+
+### Audit 2 -- 2026-03-22 (Register Rewrite + Auto-Discovery)
+- **registers.py**: Complete rewrite with correct addresses from official Schneider Modbus 503 specs. 107 sensor + 28 control registers across 6 device types.
+- **const.py**: Fixed critical slave address errors (AGS: 20->50, Battery Monitor: 30->190, SCP: 40->70). Added slave address ranges for discovery.
+- **modbus_client.py**: Added offset support for temperature conversion (Kelvin to Celsius). Added probe_slave() and read_device_name() for discovery.
+- **config_flow.py**: Added device auto-discovery via Modbus slave address scanning. Added connection validation. Documented that Modbus TCP has no authentication.
+- **SCP device type**: Expanded from 1 register to 10 (5 sensor + 5 control).

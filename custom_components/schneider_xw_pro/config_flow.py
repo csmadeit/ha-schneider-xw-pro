@@ -1,7 +1,17 @@
-"""Config flow for Schneider Electric Conext XW Pro integration."""
+"""Config flow for Schneider Electric Conext XW Pro integration.
+
+Supports two modes:
+1. Auto-discovery: Scans all known Modbus slave address ranges to find devices.
+2. Manual: User manually specifies device type and slave address.
+
+NOTE: Modbus TCP has NO authentication per the official protocol spec.
+The gateway/InsightHome web UI may have a login, but the Modbus port (502/503)
+is unauthenticated by design.
+"""
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -11,6 +21,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
+    ALL_SCAN_RANGES,
     CONF_DEVICE_NAME,
     CONF_DEVICE_TYPE,
     CONF_DEVICES,
@@ -28,6 +39,9 @@ from .modbus_client import SchneiderModbusClient
 
 _LOGGER = logging.getLogger(__name__)
 
+# Timeout per slave probe (seconds)
+_PROBE_TIMEOUT = 2.0
+
 
 class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Schneider XW Pro."""
@@ -40,6 +54,8 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         self._port: int = DEFAULT_PORT
         self._scan_interval: int = DEFAULT_SCAN_INTERVAL
         self._devices: list[dict[str, Any]] = []
+        self._discovered_devices: list[dict[str, Any]] = []
+        self._client: SchneiderModbusClient | None = None
 
     @staticmethod
     @callback
@@ -65,18 +81,37 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
-            # Test connection
+            # Test connection and validate by reading gateway device name
             client = SchneiderModbusClient(self._host, self._port)
             try:
                 connected = await client.connect()
                 if connected:
-                    return await self.async_step_devices()
+                    # Validate the connection by reading the gateway's device name
+                    device_name = await client.read_device_name(slave_id=1)
+                    if device_name:
+                        _LOGGER.info(
+                            "Connected to gateway: %s at %s:%s",
+                            device_name,
+                            self._host,
+                            self._port,
+                        )
+                    else:
+                        _LOGGER.warning(
+                            "Connected to %s:%s but could not read gateway device name. "
+                            "Proceeding anyway.",
+                            self._host,
+                            self._port,
+                        )
+                    self._client = client
+                    # Proceed to discovery step
+                    return await self.async_step_discover()
                 errors["base"] = "cannot_connect"
             except Exception:
                 _LOGGER.exception("Error testing connection")
                 errors["base"] = "cannot_connect"
-            finally:
-                await client.disconnect()
+
+            # Disconnect on failure
+            await client.disconnect()
 
         return self.async_show_form(
             step_id="user",
@@ -95,10 +130,90 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
+    async def async_step_discover(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Auto-discover devices by scanning known Modbus slave address ranges."""
+        if user_input is not None:
+            # User chose to use discovered devices or skip to manual
+            if user_input.get("use_discovered", True) and self._discovered_devices:
+                self._devices = list(self._discovered_devices)
+                return self._create_entry()
+            # User wants to manually add devices
+            return await self.async_step_devices()
+
+        # Perform the scan
+        assert self._client is not None
+        self._discovered_devices = []
+
+        for device_type, start_addr, end_addr in ALL_SCAN_RANGES:
+            for slave_id in range(start_addr, end_addr + 1):
+                try:
+                    present = await asyncio.wait_for(
+                        self._client.probe_slave(slave_id),
+                        timeout=_PROBE_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    continue
+
+                if present:
+                    # Try to read the device name
+                    try:
+                        name = await asyncio.wait_for(
+                            self._client.read_device_name(slave_id),
+                            timeout=_PROBE_TIMEOUT,
+                        )
+                    except asyncio.TimeoutError:
+                        name = None
+
+                    device_label = DEVICE_TYPE_LABELS.get(device_type, device_type)
+                    device_name = name or f"{device_label} (Slave {slave_id})"
+
+                    self._discovered_devices.append(
+                        {
+                            CONF_DEVICE_TYPE: device_type,
+                            CONF_DEVICE_NAME: device_name,
+                            CONF_SLAVE_ID: slave_id,
+                        }
+                    )
+                    _LOGGER.info(
+                        "Discovered device: %s (type=%s, slave=%d)",
+                        device_name,
+                        device_type,
+                        slave_id,
+                    )
+
+        if self._discovered_devices:
+            # Show discovered devices and let user confirm
+            device_list = "\n".join(
+                f"- {d[CONF_DEVICE_NAME]} ({DEVICE_TYPE_LABELS.get(d[CONF_DEVICE_TYPE], d[CONF_DEVICE_TYPE])}, slave {d[CONF_SLAVE_ID]})"
+                for d in self._discovered_devices
+            )
+            return self.async_show_form(
+                step_id="discover",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("use_discovered", default=True): bool,
+                    }
+                ),
+                description_placeholders={
+                    "device_count": str(len(self._discovered_devices)),
+                    "device_list": device_list,
+                },
+            )
+        else:
+            # No devices found, fall back to manual
+            _LOGGER.warning(
+                "No devices discovered on %s:%s. Falling back to manual setup.",
+                self._host,
+                self._port,
+            )
+            return await self.async_step_devices()
+
     async def async_step_devices(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle adding devices."""
+        """Handle adding devices manually."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -153,6 +268,10 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _create_entry(self) -> FlowResult:
         """Create the config entry."""
+        # Clean up the client - it will be re-created during setup
+        if self._client is not None:
+            self.hass.async_create_task(self._client.disconnect())
+
         title = f"Schneider XW Pro ({self._host}:{self._port})"
 
         return self.async_create_entry(

@@ -37,15 +37,41 @@ DEVICE_TYPE_LABELS = {
     DEVICE_TYPE_SCP: "Conext System Control Panel",
 }
 
-# Default slave addresses
+# Default slave addresses (per official Schneider Modbus specs)
 DEFAULT_SLAVE_ADDRESSES = {
     DEVICE_TYPE_XW_PRO: 10,
     DEVICE_TYPE_MPPT: 170,
-    DEVICE_TYPE_AGS: 20,
-    DEVICE_TYPE_BATTERY_MONITOR: 30,
+    DEVICE_TYPE_AGS: 50,
+    DEVICE_TYPE_BATTERY_MONITOR: 190,
     DEVICE_TYPE_GATEWAY: 1,
-    DEVICE_TYPE_SCP: 40,
+    DEVICE_TYPE_SCP: 70,
 }
+
+# Slave address ranges for device auto-discovery scanning
+# Source: Official Schneider Modbus Interface Specifications
+SLAVE_ADDRESS_RANGES = {
+    DEVICE_TYPE_GATEWAY: (1, 1),
+    DEVICE_TYPE_XW_PRO: (10, 29),
+    DEVICE_TYPE_MPPT: (30, 49),        # MPPT 60 range
+    # DEVICE_TYPE_MPPT: (170, 189),    # MPPT 80 range (scanned separately)
+    DEVICE_TYPE_AGS: (50, 69),
+    DEVICE_TYPE_SCP: (70, 89),
+    DEVICE_TYPE_BATTERY_MONITOR: (190, 209),
+}
+
+# Additional MPPT 80 range (separate from MPPT 60)
+MPPT80_SLAVE_ADDRESS_RANGE = (170, 189)
+
+# All scannable address ranges for device discovery
+ALL_SCAN_RANGES: list[tuple[str, int, int]] = [
+    (DEVICE_TYPE_GATEWAY, 1, 1),
+    (DEVICE_TYPE_XW_PRO, 10, 29),
+    (DEVICE_TYPE_MPPT, 30, 49),        # MPPT 60
+    (DEVICE_TYPE_AGS, 50, 69),
+    (DEVICE_TYPE_SCP, 70, 89),
+    (DEVICE_TYPE_MPPT, 170, 189),      # MPPT 80
+    (DEVICE_TYPE_BATTERY_MONITOR, 190, 209),
+]
 
 # Modbus data types
 DATA_TYPE_UINT16 = "uint16"
