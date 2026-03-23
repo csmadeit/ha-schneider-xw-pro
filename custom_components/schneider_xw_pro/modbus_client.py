@@ -321,6 +321,72 @@ class SchneiderModbusClient:
                 )
                 return None
 
+    @staticmethod
+    async def probe_slave_fresh(
+        host: str, port: int, slave_id: int, timeout: int = 10
+    ) -> str | None:
+        """Probe a slave using a FRESH TCP connection (open → read → close).
+
+        The Schneider Conext Gateway is embedded hardware with limited TCP
+        resources. Reusing a single persistent connection for rapid-fire
+        probes across many slave IDs can overwhelm the gateway, causing it
+        to stop responding. This mirrors the approach used by the proven
+        conext-api project (pyModbusTCP auto_open=True, auto_close=True).
+
+        Creates a brand-new AsyncModbusTcpClient for each probe, reads
+        Device Name (0x0000, 8 regs), then closes the connection.
+        """
+        client: AsyncModbusTcpClient | None = None
+        try:
+            client = AsyncModbusTcpClient(
+                host=host, port=port, timeout=timeout,
+            )
+            connected = await client.connect()
+            if not connected:
+                _LOGGER.debug(
+                    "probe_slave_fresh(%d): TCP connect failed to %s:%s",
+                    slave_id, host, port,
+                )
+                return None
+
+            _LOGGER.debug(
+                "probe_slave_fresh(%d): reading Device Name (0x0000, 8 regs)",
+                slave_id,
+            )
+            result = await client.read_holding_registers(
+                address=0x0000,  # Device Name register (universal)
+                count=8,         # 8 registers = 16 chars
+                slave=slave_id,
+            )
+            if result.isError():
+                _LOGGER.debug(
+                    "probe_slave_fresh(%d): error response: %s", slave_id, result
+                )
+                return None
+
+            chars: list[str] = []
+            for reg in result.registers:
+                chars.append(chr((reg >> 8) & 0xFF))
+                chars.append(chr(reg & 0xFF))
+            name = "".join(chars).strip("\x00").strip()
+            _LOGGER.debug("probe_slave_fresh(%d): got name=%r", slave_id, name)
+            return name if name else None
+
+        except ModbusException as exc:
+            _LOGGER.debug(
+                "probe_slave_fresh(%d): ModbusException: %s", slave_id, exc
+            )
+            return None
+        except Exception:
+            _LOGGER.debug(
+                "probe_slave_fresh(%d): unexpected exception",
+                slave_id, exc_info=True,
+            )
+            return None
+        finally:
+            if client is not None:
+                client.close()
+
     async def read_device_name(self, slave_id: int) -> str | None:
         """Read the Device Name string register from a device.
 
