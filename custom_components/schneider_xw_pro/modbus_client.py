@@ -1,18 +1,37 @@
-"""Modbus TCP client wrapper for Schneider Conext devices."""
+"""Modbus TCP client wrapper for Schneider Conext devices.
+
+Uses pyModbusTCP -- the same library proven to work with Schneider Conext
+Gateway hardware by the conext-api project (https://github.com/shorawitz/conext-api).
+
+Key design decisions:
+- auto_open=True / auto_close=True: each read/write opens a fresh TCP
+  connection, performs the operation, then closes.  The Schneider Gateway is
+  embedded hardware with limited TCP resources; persistent connections cause
+  it to stop responding.
+- unit_id is set per-client (pyModbusTCP requirement), so we create a new
+  ModbusClient instance whenever the slave address changes.
+- 0.1 s sleep between reads matches the conext-api pattern.
+- All calls are synchronous (pyModbusTCP is blocking I/O) and wrapped in
+  asyncio.to_thread() for Home Assistant compatibility.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import logging
 import struct
+import time
 from typing import Any
 
-from pymodbus.client import AsyncModbusTcpClient
-from pymodbus.exceptions import ModbusException
+from pyModbusTCP.client import ModbusClient
 
 from .registers import DataType, ModbusRegisterDefinition, RegisterType
 
 _LOGGER = logging.getLogger(__name__)
+
+# Delay between consecutive register reads (seconds).
+# Matches the proven conext-api project: sleep(0.1) between every read.
+_READ_DELAY = 0.1
 
 
 class SchneiderModbusClient:
@@ -22,7 +41,7 @@ class SchneiderModbusClient:
         self,
         host: str,
         port: int,
-        timeout: int = 15,
+        timeout: int = 30,
         delay: int = 2,
     ) -> None:
         """Initialize the Modbus client."""
@@ -30,8 +49,6 @@ class SchneiderModbusClient:
         self._port = port
         self._timeout = timeout
         self._delay = delay
-        self._client: AsyncModbusTcpClient | None = None
-        self._lock = asyncio.Lock()
 
     @property
     def host(self) -> str:
@@ -45,48 +62,32 @@ class SchneiderModbusClient:
 
     @property
     def connected(self) -> bool:
-        """Return True if connected."""
-        return self._client is not None and self._client.connected
+        """With auto_open/auto_close there is no persistent connection."""
+        return True
 
     async def connect(self) -> bool:
-        """Connect to the Modbus TCP server."""
-        if self._client is not None and self._client.connected:
-            return True
-
-        try:
-            self._client = AsyncModbusTcpClient(
-                host=self._host,
-                port=self._port,
-                timeout=self._timeout,
+        """Test TCP connectivity to the gateway."""
+        def _test_connect() -> bool:
+            client = ModbusClient(
+                host=self._host, port=self._port, timeout=self._timeout,
             )
-            connected = await self._client.connect()
-            if connected:
+            ok = client.open()
+            if ok:
+                client.close()
                 _LOGGER.info(
-                    "Connected to Schneider Gateway at %s:%s",
-                    self._host,
-                    self._port,
+                    "Connectivity OK to Schneider Gateway at %s:%s",
+                    self._host, self._port,
                 )
             else:
-                _LOGGER.error(
-                    "Failed to connect to Schneider Gateway at %s:%s",
-                    self._host,
-                    self._port,
+                _LOGGER.warning(
+                    "Cannot reach Schneider Gateway at %s:%s",
+                    self._host, self._port,
                 )
-            return connected
-        except Exception:
-            _LOGGER.exception(
-                "Error connecting to Schneider Gateway at %s:%s",
-                self._host,
-                self._port,
-            )
-            return False
+            return ok
+        return await asyncio.to_thread(_test_connect)
 
     async def disconnect(self) -> None:
-        """Disconnect from the Modbus TCP server."""
-        if self._client is not None:
-            self._client.close()
-            self._client = None
-            _LOGGER.info("Disconnected from Schneider Gateway")
+        """No-op -- auto_close handles disconnection."""
 
     async def read_register(
         self,
@@ -94,54 +95,34 @@ class SchneiderModbusClient:
         slave_id: int,
     ) -> Any:
         """Read a single register value from a device."""
-        async with self._lock:
-            if not self.connected:
-                if not await self.connect():
-                    return None
+        def _read() -> Any:
+            client = ModbusClient(
+                host=self._host, port=self._port,
+                auto_open=True, auto_close=True,
+                unit_id=slave_id, timeout=self._timeout,
+            )
+            if register.register_type == RegisterType.INPUT:
+                regs = client.read_input_registers(register.address, register.count)
+            else:
+                regs = client.read_holding_registers(register.address, register.count)
+
+            if regs is None:
+                _LOGGER.debug(
+                    "read_register: no response for %s (addr=0x%04X) from slave %d",
+                    register.key, register.address, slave_id,
+                )
+                return None
 
             try:
-                assert self._client is not None
-                if register.register_type == RegisterType.INPUT:
-                    result = await self._client.read_input_registers(
-                        address=register.address,
-                        count=register.count,
-                        slave=slave_id,
-                    )
-                else:
-                    result = await self._client.read_holding_registers(
-                        address=register.address,
-                        count=register.count,
-                        slave=slave_id,
-                    )
-
-                if result.isError():
-                    _LOGGER.debug(
-                        "Error reading register %s (addr=%d) from slave %d: %s",
-                        register.key,
-                        register.address,
-                        slave_id,
-                        result,
-                    )
-                    return None
-
-                return self._decode_value(register, result.registers)
-
-            except ModbusException as exc:
-                _LOGGER.debug(
-                    "Modbus exception reading %s from slave %d: %s",
-                    register.key,
-                    slave_id,
-                    exc,
-                )
-                return None
+                return self._decode_value(register, regs)
             except Exception:
                 _LOGGER.debug(
-                    "Unexpected error reading %s from slave %d",
-                    register.key,
-                    slave_id,
-                    exc_info=True,
+                    "read_register: decode error for %s from slave %d",
+                    register.key, slave_id, exc_info=True,
                 )
                 return None
+
+        return await asyncio.to_thread(_read)
 
     async def write_register(
         self,
@@ -149,132 +130,64 @@ class SchneiderModbusClient:
         slave_id: int,
         value: Any,
     ) -> bool:
-        """Write a value to a holding register on a device.
-
-        Uses a fresh TCP connection (open → write → close) to avoid
-        overwhelming the Schneider Gateway's embedded TCP stack.
-        """
+        """Write a value to a holding register on a device."""
         if not register.writable:
             _LOGGER.error("Register %s is not writable", register.key)
             return False
 
-        client: AsyncModbusTcpClient | None = None
-        try:
-            client = AsyncModbusTcpClient(
-                host=self._host, port=self._port, timeout=self._timeout,
+        def _write() -> bool:
+            client = ModbusClient(
+                host=self._host, port=self._port,
+                auto_open=True, auto_close=True,
+                unit_id=slave_id, timeout=self._timeout,
             )
-            connected = await client.connect()
-            if not connected:
-                _LOGGER.error(
-                    "write_register: connect failed to %s:%s for slave %d",
-                    self._host, self._port, slave_id,
-                )
-                return False
-
             encoded = self._encode_value(register, value)
 
             if register.count == 1:
-                result = await client.write_register(
-                    address=register.address,
-                    value=encoded[0],
-                    slave=slave_id,
+                ok = client.write_single_register(register.address, encoded[0])
+            else:
+                ok = client.write_multiple_registers(register.address, encoded)
+
+            if not ok:
+                _LOGGER.error(
+                    "Error writing register %s (addr=0x%04X) on slave %d",
+                    register.key, register.address, slave_id,
                 )
             else:
-                result = await client.write_registers(
-                    address=register.address,
-                    values=encoded,
-                    slave=slave_id,
+                _LOGGER.debug(
+                    "Successfully wrote %s=%s to slave %d",
+                    register.key, value, slave_id,
                 )
+            return bool(ok)
 
-            if result.isError():
-                _LOGGER.error(
-                    "Error writing register %s (addr=0x%04X) on slave %d: %s",
-                    register.key,
-                    register.address,
-                    slave_id,
-                    result,
-                )
-                return False
-
-            _LOGGER.debug(
-                "Successfully wrote %s=%s to slave %d",
-                register.key,
-                value,
-                slave_id,
-            )
-            return True
-
-        except ModbusException as exc:
-            _LOGGER.error(
-                "Modbus exception writing %s to slave %d: %s",
-                register.key,
-                slave_id,
-                exc,
-            )
-            return False
-        except Exception:
-            _LOGGER.exception(
-                "Unexpected error writing %s to slave %d",
-                register.key,
-                slave_id,
-            )
-            return False
-        finally:
-            if client is not None:
-                client.close()
+        return await asyncio.to_thread(_write)
 
     async def read_all_registers(
         self,
         registers: list[ModbusRegisterDefinition],
         slave_id: int,
     ) -> dict[str, Any]:
-        """Read all registers for a device and return as a dict.
-
-        Uses the persistent connection with a small delay between reads
-        to avoid overwhelming the gateway.
-        """
-        data: dict[str, Any] = {}
-        for register in registers:
-            value = await self.read_register(register, slave_id)
-            if value is not None:
-                # If register has options mapping, resolve the label
-                if register.options and isinstance(value, (int, float)):
-                    int_val = int(value)
-                    data[register.key] = register.options.get(int_val, str(int_val))
-                    data[f"{register.key}_raw"] = int_val
-                else:
-                    data[register.key] = value
-            # Small delay between reads to let the gateway process.
-            # The Schneider Gateway is embedded hardware; the proven
-            # conext-api project uses sleep(0.1) between every read.
-            await asyncio.sleep(0.1)
-        return data
+        """Read all registers for a device (alias for read_all_registers_fresh)."""
+        return await self.read_all_registers_fresh(registers, slave_id)
 
     async def read_all_registers_fresh(
         self,
         registers: list[ModbusRegisterDefinition],
         slave_id: int,
     ) -> dict[str, Any]:
-        """Read all registers using a FRESH TCP connection.
+        """Read all registers using pyModbusTCP auto_open/auto_close.
 
-        Opens a new connection, reads all registers for one device with
-        small delays between reads, then closes the connection.  This
-        mirrors the proven conext-api project approach and avoids
-        overwhelming the Schneider Gateway's embedded TCP stack.
+        Each individual register read opens a fresh TCP connection, reads,
+        then closes -- exactly matching the proven conext-api approach.
+        A 0.1 s delay between reads lets the gateway recover.
         """
-        data: dict[str, Any] = {}
-        client: AsyncModbusTcpClient | None = None
-        try:
-            client = AsyncModbusTcpClient(
-                host=self._host, port=self._port, timeout=self._timeout,
+        def _read_all() -> dict[str, Any]:
+            data: dict[str, Any] = {}
+            client = ModbusClient(
+                host=self._host, port=self._port,
+                auto_open=True, auto_close=True,
+                unit_id=slave_id, timeout=self._timeout,
             )
-            connected = await client.connect()
-            if not connected:
-                _LOGGER.warning(
-                    "read_all_registers_fresh: connect failed to %s:%s for slave %d",
-                    self._host, self._port, slave_id,
-                )
-                return data
 
             _LOGGER.debug(
                 "read_all_registers_fresh: reading %d registers from slave %d",
@@ -284,27 +197,23 @@ class SchneiderModbusClient:
             for register in registers:
                 try:
                     if register.register_type == RegisterType.INPUT:
-                        result = await client.read_input_registers(
-                            address=register.address,
-                            count=register.count,
-                            slave=slave_id,
+                        regs = client.read_input_registers(
+                            register.address, register.count,
                         )
                     else:
-                        result = await client.read_holding_registers(
-                            address=register.address,
-                            count=register.count,
-                            slave=slave_id,
+                        regs = client.read_holding_registers(
+                            register.address, register.count,
                         )
 
-                    if result.isError():
+                    if regs is None:
                         _LOGGER.debug(
-                            "read_all_registers_fresh: error reading %s "
-                            "(addr=0x%04X) from slave %d: %s",
-                            register.key, register.address, slave_id, result,
+                            "read_all_registers_fresh: no response for %s "
+                            "(addr=0x%04X) from slave %d",
+                            register.key, register.address, slave_id,
                         )
                     else:
                         try:
-                            value = self._decode_value(register, result.registers)
+                            value = self._decode_value(register, regs)
                         except Exception:
                             _LOGGER.debug(
                                 "read_all_registers_fresh: decode error for %s "
@@ -312,6 +221,7 @@ class SchneiderModbusClient:
                                 register.key, slave_id, exc_info=True,
                             )
                             value = None
+
                         if value is not None:
                             if register.options and isinstance(value, (int, float)):
                                 int_val = int(value)
@@ -321,12 +231,6 @@ class SchneiderModbusClient:
                                 data[f"{register.key}_raw"] = int_val
                             else:
                                 data[register.key] = value
-                except ModbusException as exc:
-                    _LOGGER.debug(
-                        "read_all_registers_fresh: ModbusException reading %s "
-                        "from slave %d: %s",
-                        register.key, slave_id, exc,
-                    )
                 except Exception:
                     _LOGGER.debug(
                         "read_all_registers_fresh: unexpected error reading %s "
@@ -334,23 +238,16 @@ class SchneiderModbusClient:
                         register.key, slave_id, exc_info=True,
                     )
 
-                # Delay between reads — matches conext-api sleep(0.1)
-                await asyncio.sleep(0.1)
+                # Delay between reads -- matches conext-api sleep(0.1)
+                time.sleep(_READ_DELAY)
 
-        except Exception:
             _LOGGER.debug(
-                "read_all_registers_fresh: connection error for slave %d",
-                slave_id, exc_info=True,
+                "read_all_registers_fresh: got %d/%d values from slave %d",
+                len(data), len(registers), slave_id,
             )
-        finally:
-            if client is not None:
-                client.close()
+            return data
 
-        _LOGGER.debug(
-            "read_all_registers_fresh: got %d/%d values from slave %d",
-            len(data), len(registers), slave_id,
-        )
-        return data
+        return await asyncio.to_thread(_read_all)
 
     def _decode_value(
         self,
@@ -403,126 +300,60 @@ class SchneiderModbusClient:
     async def probe_slave(self, slave_id: int) -> str | None:
         """Probe a slave address by reading its Device Name register.
 
-        Device Name (addr 0x0000, str16, 8 registers) is common to ALL
+        Device Name (addr 0, str16, 8 registers) is common to ALL
         Schneider Conext device types per the official Modbus 503 specs.
-        Returns the device name string if a device responds, None otherwise.
-
-        NOTE: The 'Device Present' register is NOT at the same address for
-        all device types (0x0041 for XW/AGS/BatMon/SCP, 0x0042 for MPPT),
-        and the Gateway has no Device Present register at all. Reading
-        Device Name is the only universal probe method.
         """
-        async with self._lock:
-            if not self.connected:
-                _LOGGER.debug("probe_slave(%d): not connected, reconnecting", slave_id)
-                if not await self.connect():
-                    _LOGGER.warning("probe_slave(%d): reconnect failed", slave_id)
-                    return None
-
-            try:
-                assert self._client is not None
-                _LOGGER.debug(
-                    "probe_slave(%d): reading Device Name (0x0000, 8 regs)", slave_id
-                )
-                result = await self._client.read_holding_registers(
-                    address=0x0000,  # Device Name register (universal)
-                    count=8,         # 8 registers = 16 chars
-                    slave=slave_id,
-                )
-                if result.isError():
-                    _LOGGER.debug(
-                        "probe_slave(%d): error response: %s", slave_id, result
-                    )
-                    return None
-                chars: list[str] = []
-                for reg in result.registers:
-                    chars.append(chr((reg >> 8) & 0xFF))
-                    chars.append(chr(reg & 0xFF))
-                name = "".join(chars).strip("\x00").strip()
-                _LOGGER.debug("probe_slave(%d): got name=%r", slave_id, name)
-                return name if name else None
-            except ModbusException as exc:
-                _LOGGER.debug(
-                    "probe_slave(%d): ModbusException: %s", slave_id, exc
-                )
-                return None
-            except Exception:
-                _LOGGER.debug(
-                    "probe_slave(%d): unexpected exception", slave_id, exc_info=True
-                )
-                return None
+        return await self.probe_slave_fresh(
+            self._host, self._port, slave_id, timeout=self._timeout,
+        )
 
     @staticmethod
     async def probe_slave_fresh(
-        host: str, port: int, slave_id: int, timeout: int = 10
+        host: str, port: int, slave_id: int, timeout: int = 10,
     ) -> str | None:
-        """Probe a slave using a FRESH TCP connection (open → read → close).
+        """Probe a slave using pyModbusTCP (open -> read -> close).
 
-        The Schneider Conext Gateway is embedded hardware with limited TCP
-        resources. Reusing a single persistent connection for rapid-fire
-        probes across many slave IDs can overwhelm the gateway, causing it
-        to stop responding. This mirrors the approach used by the proven
-        conext-api project (pyModbusTCP auto_open=True, auto_close=True).
-
-        Creates a brand-new AsyncModbusTcpClient for each probe, reads
-        Device Name (0x0000, 8 regs), then closes the connection.
+        Uses the same library and pattern as the proven conext-api project.
+        Creates a ModbusClient with auto_open/auto_close, reads Device Name
+        at register 0 (8 regs = 16 chars), then the client auto-closes.
         """
-        client: AsyncModbusTcpClient | None = None
-        try:
-            client = AsyncModbusTcpClient(
-                host=host, port=port, timeout=timeout,
+        def _probe() -> str | None:
+            client = ModbusClient(
+                host=host, port=port,
+                auto_open=True, auto_close=True,
+                unit_id=slave_id, timeout=timeout,
             )
-            connected = await client.connect()
-            if not connected:
+
+            _LOGGER.debug(
+                "probe_slave_fresh(%d): reading Device Name (reg 0, 8 regs)",
+                slave_id,
+            )
+
+            regs = client.read_holding_registers(0, 8)
+
+            if regs is None:
                 _LOGGER.debug(
-                    "probe_slave_fresh(%d): TCP connect failed to %s:%s",
+                    "probe_slave_fresh(%d): no response from %s:%s",
                     slave_id, host, port,
                 )
                 return None
 
-            _LOGGER.debug(
-                "probe_slave_fresh(%d): reading Device Name (0x0000, 8 regs)",
-                slave_id,
-            )
-            result = await client.read_holding_registers(
-                address=0x0000,  # Device Name register (universal)
-                count=8,         # 8 registers = 16 chars
-                slave=slave_id,
-            )
-            if result.isError():
-                _LOGGER.debug(
-                    "probe_slave_fresh(%d): error response: %s", slave_id, result
-                )
-                return None
-
+            # Decode 8 x uint16 -> 16-char string
             chars: list[str] = []
-            for reg in result.registers:
+            for reg in regs:
                 chars.append(chr((reg >> 8) & 0xFF))
                 chars.append(chr(reg & 0xFF))
             name = "".join(chars).strip("\x00").strip()
+
             _LOGGER.debug("probe_slave_fresh(%d): got name=%r", slave_id, name)
             return name if name else None
 
-        except ModbusException as exc:
-            _LOGGER.debug(
-                "probe_slave_fresh(%d): ModbusException: %s", slave_id, exc
-            )
-            return None
-        except Exception:
-            _LOGGER.debug(
-                "probe_slave_fresh(%d): unexpected exception",
-                slave_id, exc_info=True,
-            )
-            return None
-        finally:
-            if client is not None:
-                client.close()
+        return await asyncio.to_thread(_probe)
 
     async def read_device_name(self, slave_id: int) -> str | None:
         """Read the Device Name string register from a device.
 
-        Alias for probe_slave() — both read Device Name at 0x0000.
-        Kept for backward compatibility.
+        Alias for probe_slave().
         """
         return await self.probe_slave(slave_id)
 
