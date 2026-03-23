@@ -43,12 +43,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     devices = entry.data.get(CONF_DEVICES, [])
 
-    # Create a single shared Modbus client for the gateway
+    # Create a shared Modbus client for the gateway.
+    # The client holds host/port config and is used for writes.
+    # Data polling uses fresh connections per cycle (read_all_registers_fresh)
+    # to avoid overwhelming the gateway's embedded TCP stack.
     client = SchneiderModbusClient(host, port)
+
+    # Quick connectivity check — warn but don't fail, since the coordinator
+    # will retry with fresh connections on every poll cycle.
     connected = await client.connect()
     if not connected:
-        _LOGGER.error("Failed to connect to Schneider Gateway at %s:%s", host, port)
-        return False
+        _LOGGER.warning(
+            "Initial connect to Schneider Gateway at %s:%s failed; "
+            "will retry on first poll cycle",
+            host, port,
+        )
+    else:
+        # Disconnect immediately — polling uses fresh connections
+        await client.disconnect()
 
     # Create a coordinator for each configured device
     coordinators: dict[str, SchneiderDeviceCoordinator] = {}
