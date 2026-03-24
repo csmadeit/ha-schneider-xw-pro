@@ -78,7 +78,7 @@ class SchneiderNumberEntity(
             f"_{coordinator.slave_id}_{register.key}"
         )
 
-        self._attr_name = f"{coordinator.device_name} {register.name}"
+        self._attr_name = register.name
 
         if register.icon:
             self._attr_icon = register.icon
