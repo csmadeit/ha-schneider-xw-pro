@@ -279,7 +279,7 @@ class SchneiderModbusClient:
     @staticmethod
     def _group_into_blocks(
         registers: list[ModbusRegisterDefinition],
-        max_gap: int = 3,
+        max_gap: int = 1,
         max_block_size: int = 50,
     ) -> list[tuple[int, int, list[ModbusRegisterDefinition]]]:
         """Group registers into contiguous blocks for efficient reads.
@@ -289,6 +289,12 @@ class SchneiderModbusClient:
         positions) are merged into a single block.  Each block reads at
         most *max_block_size* Modbus registers.  Only registers of the
         same type (INPUT / HOLDING) are grouped together.
+
+        IMPORTANT: max_gap=1 is critical.  Schneider devices return
+        ILLEGAL_DATA_ADDRESS when a block spans undefined registers.
+        Gaps of 2+ (e.g. 0x004E-0x004F on XW Pro, 0x004A-0x004B on
+        MPPT) indicate truly undefined addresses.  Only 1-register gaps
+        (reserved addresses) are safe to merge across.
         """
         if not registers:
             return []
