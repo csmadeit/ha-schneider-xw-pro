@@ -78,7 +78,7 @@ class SchneiderNumberEntity(
             f"_{coordinator.slave_id}_{register.key}"
         )
 
-        self._attr_name = f"{coordinator.device_name} {register.name}"
+        self._attr_name = register.name
 
         if register.icon:
             self._attr_icon = register.icon
@@ -106,7 +106,6 @@ class SchneiderNumberEntity(
             model=DEVICE_TYPE_LABELS.get(
                 coordinator.device_type, coordinator.device_type
             ),
-            via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
     @property

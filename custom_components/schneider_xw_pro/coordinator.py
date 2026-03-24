@@ -59,20 +59,23 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._control_registers
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch data from the Modbus device."""
+        """Fetch data from the Modbus device.
+
+        Uses a fresh TCP connection for each poll cycle to avoid
+        overwhelming the Schneider Gateway's embedded TCP stack.
+        The proven conext-api project uses the same pattern:
+        open → read all registers → close, with small delays.
+        """
         try:
-            # Read all sensor (input) registers
-            sensor_data = await self.client.read_all_registers(
-                self._sensor_registers, self.slave_id
+            # Combine sensor + control registers into one list so we
+            # read them all in a single fresh connection cycle.
+            all_registers = list(self._sensor_registers) + list(
+                self._control_registers
             )
 
-            # Read all control (holding) registers to get current values
-            control_data = await self.client.read_all_registers(
-                self._control_registers, self.slave_id
+            data = await self.client.read_all_registers_fresh(
+                all_registers, self.slave_id
             )
-
-            # Merge both datasets
-            data = {**sensor_data, **control_data}
 
             if not data:
                 raise UpdateFailed(
@@ -81,6 +84,8 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return data
 
+        except UpdateFailed:
+            raise
         except Exception as exc:
             raise UpdateFailed(
                 f"Error communicating with {self.device_name} "

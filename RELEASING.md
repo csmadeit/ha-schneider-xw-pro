@@ -67,21 +67,22 @@ git push github vX.Y.Z
 
 ### 4. Create GitHub Release
 
-Go to https://github.com/csmadeit/ha-schneider-xw-pro/releases/new or use the API:
+**ALWAYS use the release script** to avoid the draft release bug:
 
 ```bash
-curl -X POST -H "Authorization: token $GITHUB_PAT" \
-  -H "Accept: application/vnd.github.v3+json" \
-  "https://api.github.com/repos/csmadeit/ha-schneider-xw-pro/releases" \
-  -d '{
-    "tag_name": "vX.Y.Z",
-    "target_commitish": "release",
-    "name": "vX.Y.Z: Title",
-    "body": "Release notes here",
-    "draft": false,
-    "prerelease": false
-  }'
+export GITHUB_PAT="github_pat_..."
+./scripts/release.sh "vX.Y.Z: Title" "Release notes here"
 ```
+
+The script reads the version from `manifest.json`, creates the release, and
+automatically PATCHes it to non-draft with verification.
+
+> **WARNING — DRAFT RELEASE BUG:** GitHub fine-grained PATs silently ignore
+> `"draft": false` on `POST /releases`. The release is ALWAYS created as a
+> draft. The ONLY fix is to follow the POST with a `PATCH` that sets
+> `{"draft": false}`. The `scripts/release.sh` script handles this
+> automatically. **NEVER create releases manually via the API without the
+> PATCH step — HACS cannot see draft releases.**
 
 ### 5. HACS picks up the release
 
@@ -92,8 +93,12 @@ HACS automatically detects new GitHub releases. Users will see the update in HAC
 | Version | Date | Description |
 |---------|------|-------------|
 | v0.1.0 | 2026-03-14 | Initial release with basic Modbus read/write |
-| v0.2.0 | 2026-03-22 | Register rewrite from official Schneider specs + device auto-discovery (BAD: manifest was 1.1.0) |
-| v2.0.0 | 2026-03-22 | Version alignment fix — manifest.json now 2.0.0, matching release tag |
+| v1.0.0 | 2026-03-22 | Initial release — pyModbusTCP, discovery, basic registers |
+| v1.1.0 | 2026-03-22 | Complete register coverage (281 registers from official Schneider specs) |
+| v1.2.0 | 2026-03-22 | Temperature handling, charger/inverter status enums, clean release history |
+| v1.3.0 | 2026-03-22 | Retry logic for grayed-out status entities |
+| v1.3.1 | 2026-03-22 | Block reads to reduce TCP connections from 117 to ~14 |
+| v1.3.2 | 2026-03-24 | Fix entity name duplication, reduce block size to 50, WARNING diagnostics |
 
 ## HACS Custom Repository Setup (for users)
 

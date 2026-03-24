@@ -74,7 +74,7 @@ class SchneiderSensorEntity(
             f"_{coordinator.slave_id}_{register.key}"
         )
 
-        self._attr_name = f"{coordinator.device_name} {register.name}"
+        self._attr_name = register.name
 
         if register.unit:
             self._attr_native_unit_of_measurement = register.unit
@@ -102,7 +102,6 @@ class SchneiderSensorEntity(
             model=DEVICE_TYPE_LABELS.get(
                 coordinator.device_type, coordinator.device_type
             ),
-            via_device=(DOMAIN, f"{entry.entry_id}_gateway"),
         )
 
     @callback
