@@ -194,7 +194,7 @@ class SchneiderModbusClient:
             data: dict[str, Any] = {}
             blocks = self._group_into_blocks(registers)
 
-            _LOGGER.debug(
+            _LOGGER.warning(
                 "read_all_registers_fresh: reading %d registers in %d "
                 "block(s) from slave %d",
                 len(registers), len(blocks), slave_id,
@@ -221,7 +221,7 @@ class SchneiderModbusClient:
                     if raw_block is not None:
                         break
                     if attempt < _MAX_RETRIES - 1:
-                        _LOGGER.debug(
+                        _LOGGER.warning(
                             "Block read retry %d for 0x%04X..0x%04X "
                             "from slave %d (last_error=%s, last_except=%s)",
                             attempt + 1, start_addr,
@@ -238,12 +238,13 @@ class SchneiderModbusClient:
                         self._store_decoded(data, register, reg_raw)
                 else:
                     # Block read failed — fall back to individual reads
-                    _LOGGER.debug(
-                        "Block read failed for 0x%04X..0x%04X from "
-                        "slave %d (last_error=%s, last_except=%s); "
-                        "falling back to individual reads",
+                    _LOGGER.warning(
+                        "Block read FAILED for 0x%04X..0x%04X (%d regs) from "
+                        "slave %d after %d retries (last_error=%s, "
+                        "last_except=%s); falling back to individual reads",
                         start_addr, start_addr + total_count - 1,
-                        slave_id, client.last_error, client.last_except,
+                        total_count, slave_id, _MAX_RETRIES,
+                        client.last_error, client.last_except,
                     )
                     self._read_individually(
                         data, block_regs, slave_id,
@@ -252,10 +253,21 @@ class SchneiderModbusClient:
                 # Delay between blocks
                 time.sleep(_READ_DELAY)
 
-            _LOGGER.debug(
-                "read_all_registers_fresh: got %d/%d values from slave %d",
-                len(data), len(registers), slave_id,
-            )
+            if len(data) < len(registers):
+                missing = set(r.key for r in registers) - set(data.keys())
+                # Filter out _raw keys from missing count
+                missing = {k for k in missing if not k.endswith("_raw")}
+                _LOGGER.warning(
+                    "read_all_registers_fresh: got %d/%d values from "
+                    "slave %d — MISSING: %s",
+                    len(data), len(registers), slave_id,
+                    ", ".join(sorted(missing)[:20]),
+                )
+            else:
+                _LOGGER.warning(
+                    "read_all_registers_fresh: got %d/%d values from slave %d",
+                    len(data), len(registers), slave_id,
+                )
             return data
 
         return await asyncio.to_thread(_read_all)
@@ -268,7 +280,7 @@ class SchneiderModbusClient:
     def _group_into_blocks(
         registers: list[ModbusRegisterDefinition],
         max_gap: int = 10,
-        max_block_size: int = 100,
+        max_block_size: int = 50,
     ) -> list[tuple[int, int, list[ModbusRegisterDefinition]]]:
         """Group registers into contiguous blocks for efficient reads.
 
@@ -372,8 +384,8 @@ class SchneiderModbusClient:
             if regs is not None:
                 self._store_decoded(data, register, regs)
             else:
-                _LOGGER.debug(
-                    "Individual read failed for %s (0x%04X) slave %d "
+                _LOGGER.warning(
+                    "Individual read FAILED for %s (0x%04X) slave %d "
                     "(last_error=%s, last_except=%s)",
                     register.key, register.address, slave_id,
                     client.last_error, client.last_except,
