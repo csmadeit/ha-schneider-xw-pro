@@ -100,7 +100,16 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Final verification — re-read from API to confirm
+# 6. Sync release branch (GitHub default branch is 'release', not 'main')
+#    HACS downloads from the default branch — if release is behind, HACS
+#    gets stale code even though the tag/release is correct.
+# ---------------------------------------------------------------------------
+echo ""
+echo "Syncing main → release branch on GitHub..."
+git push github main:release 2>/dev/null && echo "  release branch updated." || echo "  WARNING: Could not push to release branch (not fatal)."
+
+# ---------------------------------------------------------------------------
+# 7. Final verification — re-read from API to confirm
 # ---------------------------------------------------------------------------
 echo ""
 echo "Verifying..."

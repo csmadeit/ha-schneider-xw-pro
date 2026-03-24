@@ -194,7 +194,7 @@ class SchneiderModbusClient:
             data: dict[str, Any] = {}
             blocks = self._group_into_blocks(registers)
 
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "read_all_registers_fresh: reading %d registers in %d "
                 "block(s) from slave %d",
                 len(registers), len(blocks), slave_id,
@@ -264,7 +264,7 @@ class SchneiderModbusClient:
                     ", ".join(sorted(missing)[:20]),
                 )
             else:
-                _LOGGER.warning(
+                _LOGGER.debug(
                     "read_all_registers_fresh: got %d/%d values from slave %d",
                     len(data), len(registers), slave_id,
                 )
@@ -279,7 +279,7 @@ class SchneiderModbusClient:
     @staticmethod
     def _group_into_blocks(
         registers: list[ModbusRegisterDefinition],
-        max_gap: int = 10,
+        max_gap: int = 3,
         max_block_size: int = 50,
     ) -> list[tuple[int, int, list[ModbusRegisterDefinition]]]:
         """Group registers into contiguous blocks for efficient reads.
