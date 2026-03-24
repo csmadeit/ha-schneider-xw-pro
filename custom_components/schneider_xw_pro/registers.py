@@ -25,6 +25,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfApparentPower,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -395,6 +396,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower",
     ),
     ModbusRegisterDefinition(
@@ -566,6 +570,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
     ),
     ModbusRegisterDefinition(
@@ -677,6 +684,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
     ModbusRegisterDefinition(
@@ -806,6 +816,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:engine",
     ),
     ModbusRegisterDefinition(
@@ -2955,6 +2968,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
     ),
     ModbusRegisterDefinition(
@@ -2989,6 +3005,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
     ),
     ModbusRegisterDefinition(
@@ -3072,6 +3091,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
     ModbusRegisterDefinition(
