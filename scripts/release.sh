@@ -69,35 +69,41 @@ fi
 echo "Release created (id=$RELEASE_ID). Now forcing non-draft via PATCH..."
 
 # ---------------------------------------------------------------------------
-# 5. PATCH to force draft=false (the CRITICAL step)
+# 5. PATCH to force draft=false, then VERIFY with a separate GET.
+#    Fine-grained PATs: PATCH response may claim draft=False but the
+#    release can revert to draft. We loop up to 5 times, each time
+#    PATCHing then sleeping and GETting to confirm.
 # ---------------------------------------------------------------------------
-PATCH_RESPONSE=$(curl -s -X PATCH "$API/$RELEASE_ID" \
-  -H "Authorization: Bearer $GITHUB_PAT" \
-  -H "Accept: application/vnd.github+json" \
-  -d '{"draft": false}')
-
-DRAFT_STATUS=$(echo "$PATCH_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
-
-if [[ "$DRAFT_STATUS" == "False" ]]; then
-  echo "Release $TAG published successfully (draft=False)."
-  echo "URL: https://github.com/$REPO/releases/tag/$TAG"
-else
-  echo "WARNING: PATCH returned draft=$DRAFT_STATUS. Retrying..."
-  sleep 2
-  RETRY_RESPONSE=$(curl -s -X PATCH "$API/$RELEASE_ID" \
+MAX_ATTEMPTS=5
+for attempt in $(seq 1 $MAX_ATTEMPTS); do
+  echo "  Attempt $attempt/$MAX_ATTEMPTS: PATCH draft=false ..."
+  curl -s -X PATCH "$API/$RELEASE_ID" \
     -H "Authorization: Bearer $GITHUB_PAT" \
     -H "Accept: application/vnd.github+json" \
-    -d '{"draft": false}')
-  DRAFT_STATUS=$(echo "$RETRY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
+    -d '{"draft": false}' > /dev/null
+
+  sleep 3
+
+  # Verify with a fresh GET (using release ID, NOT tag — tags 404 for drafts)
+  DRAFT_STATUS=$(curl -s "$API/$RELEASE_ID" \
+    -H "Authorization: Bearer $GITHUB_PAT" \
+    -H "Accept: application/vnd.github+json" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
+
+  echo "  GET verification: draft=$DRAFT_STATUS"
+
   if [[ "$DRAFT_STATUS" == "False" ]]; then
-    echo "Release $TAG published successfully after retry (draft=False)."
+    echo "Release $TAG published successfully (draft=False, verified via GET)."
     echo "URL: https://github.com/$REPO/releases/tag/$TAG"
-  else
-    echo "ERROR: Release $TAG is STILL draft=$DRAFT_STATUS after retry!"
+    break
+  fi
+
+  if [[ $attempt -eq $MAX_ATTEMPTS ]]; then
+    echo "ERROR: Release $TAG is STILL draft=$DRAFT_STATUS after $MAX_ATTEMPTS attempts!"
     echo "Manually un-draft at: https://github.com/$REPO/releases/edit/$TAG"
     exit 1
   fi
-fi
+done
 
 # ---------------------------------------------------------------------------
 # 6. Sync release branch (GitHub default branch is 'release', not 'main')
@@ -109,11 +115,11 @@ echo "Syncing main → release branch on GitHub..."
 git push github main:release 2>/dev/null && echo "  release branch updated." || echo "  WARNING: Could not push to release branch (not fatal)."
 
 # ---------------------------------------------------------------------------
-# 7. Final verification — re-read from API to confirm
+# 7. Final verification — re-read from API using release ID (not tag)
 # ---------------------------------------------------------------------------
 echo ""
-echo "Verifying..."
-VERIFY=$(curl -s "$API/tags/$TAG" \
+echo "Final verification (using release ID $RELEASE_ID)..."
+VERIFY=$(curl -s "$API/$RELEASE_ID" \
   -H "Authorization: Bearer $GITHUB_PAT" \
   -H "Accept: application/vnd.github+json" | python3 -c "import sys,json; r=json.load(sys.stdin); print(f'  tag={r[\"tag_name\"]} draft={r[\"draft\"]} url={r[\"html_url\"]}')" 2>/dev/null || true)
 echo "$VERIFY"
