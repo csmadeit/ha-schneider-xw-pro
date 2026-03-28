@@ -89,15 +89,15 @@ Reads Device Present (0x0041) and Device Name (0x0000) registers.
 
 ## 3. Register Counts by Device Type
 
-| Device Type | Sensor | Control | Total |
+| Device Type | Sensor (INPUT) | Control (HOLDING) | Total |
 |------------|--------|---------|-------|
-| XW Pro (990-6268B) | 48 | 13 | 61 |
-| MPPT (990-6270A) | 17 | 6 | 23 |
-| AGS (990-6274A) | 8 | 4 | 12 |
-| Battery Monitor (990-6278A) | 12 | 0 | 12 |
-| Gateway (990-6271B) | 17 | 0 | 17 |
+| XW Pro (990-6268B) | 83 | 34 | 117 |
+| MPPT (990-6270A) | 26 | 15 | 41 |
+| AGS (990-6274A) | 11 | 31 | 42 |
+| Battery Monitor (990-6278A) | 27 | 3 | 30 |
+| Gateway (990-6271B) | 41 | 0 | 41 |
 | SCP (990-6272A) | 5 | 5 | 10 |
-| **Total** | **107** | **28** | **135** |
+| **Total** | **193** | **88** | **281** |
 
 See registers.py for complete definitions with all addresses, data types, scales, offsets, and options.
 
@@ -112,7 +112,8 @@ See registers.py for complete definitions with all addresses, data types, scales
 | Default Port (InsightHome) | 503 |
 | Default Port (ComBox) | 502 |
 | Timeout | 15 seconds |
-| Read Function | 0x03 (Read Holding Registers) |
+| Sensor Read Function | 0x04 (Read Input Registers) |
+| Control Read Function | 0x03 (Read Holding Registers) |
 | Write Function | 0x06 / 0x10 |
 
 ### Temperature Conversion
