@@ -22,7 +22,7 @@ from .const import (
     MANUFACTURER,
 )
 from .coordinator import SchneiderDeviceCoordinator
-from .registers import ModbusRegisterDefinition
+from .registers import DataType, ModbusRegisterDefinition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +95,9 @@ class SchneiderSensorEntity(
         if register.entity_category:
             self._attr_entity_category = register.entity_category
 
-        self._attr_suggested_display_precision = register.precision
+        # Only set display precision for numeric sensors (not STRING/ENUM)
+        if register.data_type != DataType.STRING and not register.options:
+            self._attr_suggested_display_precision = register.precision
 
         # Device info for device registry
         self._attr_device_info = DeviceInfo(
