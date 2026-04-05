@@ -7,7 +7,11 @@
         "data": {
           "host": "Host / IP Address",
           "port": "Port",
-          "scan_interval": "Scan Interval (seconds)"
+          "scan_interval": "Scan Interval (seconds)",
+          "register_type": "Sensor Register Type"
+        },
+        "data_description": {
+          "register_type": "Holding Registers (FC 0x03) is the default and works on all gateways. Input Registers (FC 0x04) is per the Schneider spec but experimental — not all gateways support it. If sensors stop reporting after switching, revert to Holding."
         }
       },
       "discover": {
@@ -40,7 +44,8 @@
       "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "This gateway is already configured."
+      "already_configured": "This gateway is already configured.",
+      "reconfigure_successful": "Devices updated successfully. The integration will reload with the new device list."
     }
   },
   "options": {
@@ -48,7 +53,11 @@
       "init": {
         "title": "Schneider XW Pro Options",
         "data": {
-          "scan_interval": "Scan Interval (seconds)"
+          "scan_interval": "Scan Interval (seconds)",
+          "register_type": "Sensor Register Type"
+        },
+        "data_description": {
+          "register_type": "Holding Registers (FC 0x03) is the default and works on all gateways. Input Registers (FC 0x04) is per the Schneider spec but experimental — not all gateways support it. If sensors stop reporting after switching, revert to Holding."
         }
       }
     }

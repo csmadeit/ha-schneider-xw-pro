@@ -22,8 +22,10 @@ from dataclasses import dataclass
 from enum import Enum
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfApparentPower,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -73,7 +75,7 @@ class ModbusRegisterDefinition:
     max_value: float | None = None
     options: dict[int, str] | None = None
     icon: str | None = None
-    entity_category: str | None = None
+    entity_category: EntityCategory | None = None
 
 
 
@@ -91,7 +93,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Device State",
@@ -109,7 +111,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Inactive", 1: "Active"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 0",
@@ -118,7 +120,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 1",
@@ -127,7 +129,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 2",
@@ -136,7 +138,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 3",
@@ -145,7 +147,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Warning Bitmap 0",
@@ -154,7 +156,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Inverter Enabled Status",
@@ -200,7 +202,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Faults", 1: "Active Faults"},
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Warnings",
@@ -210,7 +212,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Warnings", 1: "Active Warnings"},
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Charge Mode Status",
@@ -394,6 +396,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower",
     ),
     ModbusRegisterDefinition(
@@ -479,7 +484,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Not Qualified", 1: "Qualified"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="AC1 Frequency Qualified",
@@ -488,7 +493,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Not Qualified", 1: "Qualified"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Inverter Status",
@@ -565,6 +570,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:home-lightning-bolt",
     ),
     ModbusRegisterDefinition(
@@ -676,6 +684,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
     ModbusRegisterDefinition(
@@ -723,7 +734,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Not Qualified", 1: "Qualified"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="AC2 Frequency Qualified",
@@ -732,7 +743,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Not Qualified", 1: "Qualified"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="AC2 Power",
@@ -805,6 +816,9 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:engine",
     ),
     ModbusRegisterDefinition(
@@ -815,7 +829,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Auxiliary Output On Reason",
@@ -825,7 +839,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not Active", 1: "Load Sense", 2: "Manual On", 3: "Temperature", 4: "SOC", 5: "Fault"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Auxiliary Output Off Reason",
@@ -835,7 +849,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not Active", 1: "Load Sense", 2: "Manual Off", 3: "Temperature", 4: "SOC"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Switch Operating State",
@@ -845,7 +859,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={800: "Inactive", 801: "Input1 Active", 802: "Input2 Active", 803: "Input1 Delay", 804: "Input2 Delay"},
         icon="mdi:toggle-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Switch Mode",
@@ -855,7 +869,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Unknown", 1: "Grid Priority", 2: "Generator Priority"},
         icon="mdi:toggle-switch-variant",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Warning Bitmap 1",
@@ -864,7 +878,7 @@ XW_PRO_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Nominal Battery Voltage",
@@ -1504,7 +1518,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Device State",
@@ -1531,7 +1545,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Inactive", 1: "Active"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Charge Mode Status",
@@ -1550,7 +1564,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Faults", 1: "Active Faults"},
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Warnings",
@@ -1560,7 +1574,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Warnings", 1: "Active Warnings"},
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 0",
@@ -1569,7 +1583,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 1",
@@ -1578,7 +1592,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Warning Bitmap 0",
@@ -1587,7 +1601,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Charger Status",
@@ -1710,7 +1724,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Disabled", 1: "Enabled"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Auxiliary Output On Reason",
@@ -1720,7 +1734,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not Active", 1: "Manual On", 2: "Battery Voltage", 3: "Array Voltage", 4: "Temperature"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Auxiliary Output Off Reason",
@@ -1730,7 +1744,7 @@ MPPT_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not Active", 1: "Manual Off", 2: "Battery Voltage", 3: "Array Voltage", 4: "Temperature"},
         icon="mdi:electric-switch",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Energy From PV Today",
@@ -1992,7 +2006,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Device State",
@@ -2010,7 +2024,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Inactive", 1: "Active"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Generator State",
@@ -2038,7 +2052,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not On", 1: "DC Voltage Low", 2: "Battery SOC Low", 3: "AC Current High", 4: "Contact Closed", 5: "Manual On", 6: "Exercise", 7: "Non Quiet Time"},
         icon="mdi:engine",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Generator Off Reason",
@@ -2048,7 +2062,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "Not Off", 1: "DC Voltage High", 2: "Battery SOC High", 3: "AC Current Low", 4: "Contact Open", 5: "Manual Off", 6: "Timer", 7: "Quiet Time"},
         icon="mdi:engine",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Faults",
@@ -2058,7 +2072,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Faults", 1: "Active Faults"},
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Warnings",
@@ -2068,7 +2082,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Warnings", 1: "Active Warnings"},
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Fault Bitmap 0",
@@ -2077,7 +2091,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Warning Bitmap 0",
@@ -2086,7 +2100,7 @@ AGS_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 ]
 
@@ -2494,7 +2508,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Device State",
@@ -2512,7 +2526,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Inactive", 1: "Active"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Voltage",
@@ -2677,7 +2691,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=UnitOfTime.HOURS,
         icon="mdi:timer",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Last Equalize",
@@ -2687,7 +2701,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:calendar",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Average Discharge",
@@ -2696,7 +2710,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT16,
         icon="mdi:battery-minus",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Average Discharge Percent",
@@ -2708,7 +2722,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=PERCENTAGE,
         icon="mdi:battery-minus",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Deepest Discharge",
@@ -2717,7 +2731,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT16,
         icon="mdi:battery-alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Deepest Discharge Percent",
@@ -2729,7 +2743,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         precision=1,
         unit=PERCENTAGE,
         icon="mdi:battery-alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Capacity Removed Total",
@@ -2739,7 +2753,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:battery-minus",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Battery Capacity Returned",
@@ -2749,7 +2763,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:battery-plus",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Charge Cycles",
@@ -2758,7 +2772,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:counter",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Number of Synchronizations",
@@ -2767,7 +2781,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:sync",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Number of Discharges",
@@ -2776,7 +2790,7 @@ BATTERY_MONITOR_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:battery-minus",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 ]
 
@@ -2833,7 +2847,7 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.STRING,
         count=10,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="System Status",
@@ -2842,7 +2856,7 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:router-wireless",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="System Active Faults Count",
@@ -2851,7 +2865,7 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Generator State",
@@ -2869,7 +2883,7 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="PV Harvest Power",
@@ -2954,6 +2968,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-import",
     ),
     ModbusRegisterDefinition(
@@ -2988,6 +3005,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transmission-tower-export",
     ),
     ModbusRegisterDefinition(
@@ -3071,6 +3091,9 @@ GATEWAY_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.INT32,
         count=2,
+        unit=UnitOfApparentPower.VOLT_AMPERE,
+        device_class=SensorDeviceClass.APPARENT_POWER,
+        state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:flash",
     ),
     ModbusRegisterDefinition(
@@ -3336,7 +3359,7 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT32,
         count=2,
         icon="mdi:information-outline",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Device State",
@@ -3354,7 +3377,7 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         register_type=RegisterType.HOLDING,
         data_type=DataType.UINT16,
         options={0: "Inactive", 1: "Active"},
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Faults",
@@ -3364,7 +3387,7 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Faults", 1: "Active Faults"},
         icon="mdi:alert-circle",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     ModbusRegisterDefinition(
         name="Active Warnings",
@@ -3374,7 +3397,7 @@ SCP_SENSOR_REGISTERS: list[ModbusRegisterDefinition] = [
         data_type=DataType.UINT16,
         options={0: "No Warnings", 1: "Active Warnings"},
         icon="mdi:alert",
-        entity_category="diagnostic",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
 ]
 

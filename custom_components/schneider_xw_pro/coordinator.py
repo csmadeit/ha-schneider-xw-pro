@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import timedelta
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DEFAULT_SCAN_INTERVAL
+from .const import DEFAULT_REGISTER_TYPE, DEFAULT_SCAN_INTERVAL, REGISTER_TYPE_INPUT
 from .modbus_client import SchneiderModbusClient
 from .registers import (
     CONTROL_REGISTERS_BY_DEVICE,
     SENSOR_REGISTERS_BY_DEVICE,
     ModbusRegisterDefinition,
+    RegisterType,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,6 +33,7 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         device_type: str,
         slave_id: int,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
+        register_type: str = DEFAULT_REGISTER_TYPE,
     ) -> None:
         """Initialize the coordinator."""
         self.client = client
@@ -38,8 +41,19 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_type = device_type
         self.slave_id = slave_id
 
-        self._sensor_registers = SENSOR_REGISTERS_BY_DEVICE.get(device_type, [])
+        base_sensor_registers = SENSOR_REGISTERS_BY_DEVICE.get(device_type, [])
         self._control_registers = CONTROL_REGISTERS_BY_DEVICE.get(device_type, [])
+
+        # Override register type for read-only sensor registers when the user
+        # selects INPUT (FC 0x04) mode.  Control (writable) registers always
+        # stay HOLDING because writes require FC 0x06/0x10.
+        if register_type == REGISTER_TYPE_INPUT:
+            self._sensor_registers = [
+                self._with_register_type(reg, RegisterType.INPUT)
+                for reg in base_sensor_registers
+            ]
+        else:
+            self._sensor_registers = list(base_sensor_registers)
 
         super().__init__(
             hass,
@@ -91,6 +105,13 @@ class SchneiderDeviceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"Error communicating with {self.device_name} "
                 f"(slave {self.slave_id}): {exc}"
             ) from exc
+
+    @staticmethod
+    def _with_register_type(
+        reg: ModbusRegisterDefinition, rtype: RegisterType,
+    ) -> ModbusRegisterDefinition:
+        """Return a copy of *reg* with a different register_type."""
+        return replace(reg, register_type=rtype)
 
     async def async_write_register(
         self,

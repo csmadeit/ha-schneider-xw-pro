@@ -69,42 +69,97 @@ fi
 echo "Release created (id=$RELEASE_ID). Now forcing non-draft via PATCH..."
 
 # ---------------------------------------------------------------------------
-# 5. PATCH to force draft=false (the CRITICAL step)
+# 5. PATCH to force draft=false, then VERIFY with a separate GET.
+#    Fine-grained PATs: PATCH response may claim draft=False but the
+#    release can revert to draft due to GitHub eventual consistency.
+#    We do an initial PATCH+verify loop, then a DELAYED re-check after
+#    30 seconds to catch any late reverts.
 # ---------------------------------------------------------------------------
-PATCH_RESPONSE=$(curl -s -X PATCH "$API/$RELEASE_ID" \
+_patch_and_verify() {
+  local rid="$1" label="$2" max="$3"
+  for attempt in $(seq 1 "$max"); do
+    echo "  $label attempt $attempt/$max: PATCH draft=false ..."
+    curl -s -X PATCH "$API/$rid" \
+      -H "Authorization: Bearer $GITHUB_PAT" \
+      -H "Accept: application/vnd.github+json" \
+      -d '{"draft": false}' > /dev/null
+
+    sleep 5
+
+    DRAFT_STATUS=$(curl -s "$API/$rid" \
+      -H "Authorization: Bearer $GITHUB_PAT" \
+      -H "Accept: application/vnd.github+json" \
+      | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
+
+    echo "  GET verification: draft=$DRAFT_STATUS"
+
+    if [[ "$DRAFT_STATUS" == "False" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+echo ""
+echo "--- Round 1: initial PATCH+verify ---"
+if ! _patch_and_verify "$RELEASE_ID" "Round-1" 5; then
+  echo "ERROR: Release $TAG is STILL draft after 5 attempts!"
+  echo "Manually un-draft at: https://github.com/$REPO/releases/edit/$TAG"
+  exit 1
+fi
+echo "Release $TAG draft=False after round 1."
+echo "URL: https://github.com/$REPO/releases/tag/$TAG"
+
+echo ""
+echo "--- Round 2: delayed re-check (30 s) to catch eventual-consistency reverts ---"
+sleep 30
+
+DRAFT_STATUS=$(curl -s "$API/$RELEASE_ID" \
   -H "Authorization: Bearer $GITHUB_PAT" \
   -H "Accept: application/vnd.github+json" \
-  -d '{"draft": false}')
+  | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
 
-DRAFT_STATUS=$(echo "$PATCH_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
+echo "  Delayed GET: draft=$DRAFT_STATUS"
 
-if [[ "$DRAFT_STATUS" == "False" ]]; then
-  echo "Release $TAG published successfully (draft=False)."
-  echo "URL: https://github.com/$REPO/releases/tag/$TAG"
-else
-  echo "WARNING: PATCH returned draft=$DRAFT_STATUS. Retrying..."
-  sleep 2
-  RETRY_RESPONSE=$(curl -s -X PATCH "$API/$RELEASE_ID" \
+if [[ "$DRAFT_STATUS" != "False" ]]; then
+  echo "  Draft reverted! Re-patching..."
+  if ! _patch_and_verify "$RELEASE_ID" "Round-2" 5; then
+    echo "ERROR: Release $TAG keeps reverting to draft!"
+    echo "Manually un-draft at: https://github.com/$REPO/releases/edit/$TAG"
+    exit 1
+  fi
+  # Wait another 30 s and check one last time
+  echo "  Waiting 30 s for final confirmation..."
+  sleep 30
+  DRAFT_STATUS=$(curl -s "$API/$RELEASE_ID" \
     -H "Authorization: Bearer $GITHUB_PAT" \
     -H "Accept: application/vnd.github+json" \
-    -d '{"draft": false}')
-  DRAFT_STATUS=$(echo "$RETRY_RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
-  if [[ "$DRAFT_STATUS" == "False" ]]; then
-    echo "Release $TAG published successfully after retry (draft=False)."
-    echo "URL: https://github.com/$REPO/releases/tag/$TAG"
-  else
-    echo "ERROR: Release $TAG is STILL draft=$DRAFT_STATUS after retry!"
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('draft','unknown'))" 2>/dev/null || true)
+  echo "  Final GET: draft=$DRAFT_STATUS"
+  if [[ "$DRAFT_STATUS" != "False" ]]; then
+    echo "ERROR: Release $TAG STILL reverted to draft after all attempts!"
     echo "Manually un-draft at: https://github.com/$REPO/releases/edit/$TAG"
     exit 1
   fi
 fi
 
+echo "Release $TAG confirmed non-draft (passed delayed verification)."
+
 # ---------------------------------------------------------------------------
-# 6. Final verification — re-read from API to confirm
+# 6. Sync release branch (GitHub default branch is 'release', not 'main')
+#    HACS downloads from the default branch — if release is behind, HACS
+#    gets stale code even though the tag/release is correct.
 # ---------------------------------------------------------------------------
 echo ""
-echo "Verifying..."
-VERIFY=$(curl -s "$API/tags/$TAG" \
+echo "Syncing main → release branch on GitHub..."
+git push github main:release 2>/dev/null && echo "  release branch updated." || echo "  WARNING: Could not push to release branch (not fatal)."
+
+# ---------------------------------------------------------------------------
+# 7. Final verification — re-read from API using release ID (not tag)
+# ---------------------------------------------------------------------------
+echo ""
+echo "Final verification (using release ID $RELEASE_ID)..."
+VERIFY=$(curl -s "$API/$RELEASE_ID" \
   -H "Authorization: Bearer $GITHUB_PAT" \
   -H "Accept: application/vnd.github+json" | python3 -c "import sys,json; r=json.load(sys.stdin); print(f'  tag={r[\"tag_name\"]} draft={r[\"draft\"]} url={r[\"html_url\"]}')" 2>/dev/null || true)
 echo "$VERIFY"

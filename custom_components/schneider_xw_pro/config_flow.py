@@ -27,13 +27,16 @@ from .const import (
     CONF_DEVICES,
     CONF_HOST,
     CONF_PORT,
+    CONF_REGISTER_TYPE,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE_ID,
     DEFAULT_PORT,
+    DEFAULT_REGISTER_TYPE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE_ADDRESSES,
     DEVICE_TYPE_LABELS,
     DOMAIN,
+    REGISTER_TYPE_LABELS,
 )
 from .modbus_client import SchneiderModbusClient
 
@@ -63,8 +66,10 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         self._host: str = ""
         self._port: int = DEFAULT_PORT
         self._scan_interval: int = DEFAULT_SCAN_INTERVAL
+        self._register_type: str = DEFAULT_REGISTER_TYPE
         self._devices: list[dict[str, Any]] = []
         self._discovered_devices: list[dict[str, Any]] = []
+        self._reconfigure_entry: ConfigEntry | None = None
 
     @staticmethod
     @callback
@@ -84,11 +89,20 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
             self._scan_interval = user_input.get(
                 CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
             )
+            self._register_type = user_input.get(
+                CONF_REGISTER_TYPE, DEFAULT_REGISTER_TYPE
+            )
 
-            # Prevent duplicate entries for the same gateway
+            # Check for existing entry with same gateway.
+            # Instead of aborting with "already configured", we allow
+            # re-discovery so users can add/update devices without
+            # removing the entire installation.
             unique_id = f"schneider_xw_pro_{self._host}_{self._port}"
             await self.async_set_unique_id(unique_id)
-            self._abort_if_unique_id_configured()
+            for entry in self._async_current_entries():
+                if entry.unique_id == unique_id:
+                    self._reconfigure_entry = entry
+                    break
 
             # Validate the gateway is reachable by probing slave 1
             # using a fresh connection (open -> read -> close).
@@ -130,6 +144,9 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Optional(
                         CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
                     ): vol.Coerce(int),
+                    vol.Optional(
+                        CONF_REGISTER_TYPE, default=DEFAULT_REGISTER_TYPE
+                    ): vol.In(REGISTER_TYPE_LABELS),
                 }
             ),
             errors=errors,
@@ -299,17 +316,32 @@ class SchneiderXWProConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     def _create_entry(self) -> FlowResult:
-        """Create the config entry."""
-        title = f"Schneider XW Pro ({self._host}:{self._port})"
+        """Create or update the config entry."""
+        new_data = {
+            CONF_HOST: self._host,
+            CONF_PORT: self._port,
+            CONF_SCAN_INTERVAL: self._scan_interval,
+            CONF_REGISTER_TYPE: self._register_type,
+            CONF_DEVICES: self._devices,
+        }
 
+        if self._reconfigure_entry is not None:
+            # Update existing entry and reload it
+            self.hass.config_entries.async_update_entry(
+                self._reconfigure_entry,
+                data=new_data,
+            )
+            self.hass.async_create_task(
+                self.hass.config_entries.async_reload(
+                    self._reconfigure_entry.entry_id
+                )
+            )
+            return self.async_abort(reason="reconfigure_successful")
+
+        title = f"Schneider XW Pro ({self._host}:{self._port})"
         return self.async_create_entry(
             title=title,
-            data={
-                CONF_HOST: self._host,
-                CONF_PORT: self._port,
-                CONF_SCAN_INTERVAL: self._scan_interval,
-                CONF_DEVICES: self._devices,
-            },
+            data=new_data,
         )
 
 
@@ -328,6 +360,7 @@ class SchneiderXWProOptionsFlow(OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         current = self._config_entry.data
+        current_options = self._config_entry.options
 
         return self.async_show_form(
             step_id="init",
@@ -335,8 +368,18 @@ class SchneiderXWProOptionsFlow(OptionsFlow):
                 {
                     vol.Optional(
                         CONF_SCAN_INTERVAL,
-                        default=current.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                        default=current_options.get(
+                            CONF_SCAN_INTERVAL,
+                            current.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                        ),
                     ): vol.Coerce(int),
+                    vol.Optional(
+                        CONF_REGISTER_TYPE,
+                        default=current_options.get(
+                            CONF_REGISTER_TYPE,
+                            current.get(CONF_REGISTER_TYPE, DEFAULT_REGISTER_TYPE),
+                        ),
+                    ): vol.In(REGISTER_TYPE_LABELS),
                 }
             ),
         )

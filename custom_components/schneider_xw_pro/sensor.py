@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -76,10 +77,17 @@ class SchneiderSensorEntity(
 
         self._attr_name = register.name
 
+        # Status / enum sensors: registers with an options map return
+        # string values.  HA 2023.x+ requires SensorDeviceClass.ENUM
+        # and an explicit list of valid option strings for such sensors.
+        if register.options and not register.device_class:
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = list(register.options.values())
+        elif register.device_class:
+            self._attr_device_class = register.device_class
+
         if register.unit:
             self._attr_native_unit_of_measurement = register.unit
-        if register.device_class:
-            self._attr_device_class = register.device_class
         if register.state_class:
             self._attr_state_class = register.state_class
         if register.icon:
@@ -114,7 +122,25 @@ class SchneiderSensorEntity(
         """Return the sensor value."""
         if self.coordinator.data is None:
             return None
-        return self.coordinator.data.get(self._register.key)
+        value = self.coordinator.data.get(self._register.key)
+        # For ENUM sensors, only return values that are in the declared
+        # options list.  Unmapped Modbus values (stored as str(int)) would
+        # violate HA's ENUM validation; return None so the entity shows
+        # "unknown" instead of failing.
+        if (
+            value is not None
+            and self._register.options
+            and isinstance(value, str)
+            and hasattr(self, "_attr_options")
+            and value not in self._attr_options
+        ):
+            _LOGGER.debug(
+                "Unmapped enum value %r for %s — returning unknown",
+                value,
+                self._register.key,
+            )
+            return None
+        return value
 
     @property
     def available(self) -> bool:

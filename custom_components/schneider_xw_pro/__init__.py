@@ -14,10 +14,12 @@ from .const import (
     CONF_DEVICES,
     CONF_HOST,
     CONF_PORT,
+    CONF_REGISTER_TYPE,
     CONF_SCAN_INTERVAL,
     CONF_SLAVE_ID,
     COORDINATOR,
     DEFAULT_PORT,
+    DEFAULT_REGISTER_TYPE,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
@@ -41,6 +43,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     host = entry.data[CONF_HOST]
     port = entry.data.get(CONF_PORT, DEFAULT_PORT)
     scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    # Register type can be overridden via options flow (takes precedence)
+    register_type = entry.options.get(
+        CONF_REGISTER_TYPE,
+        entry.data.get(CONF_REGISTER_TYPE, DEFAULT_REGISTER_TYPE),
+    )
     devices = entry.data.get(CONF_DEVICES, [])
 
     # Create a shared Modbus client for the gateway.
@@ -76,6 +83,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             device_type=device_type,
             slave_id=slave_id,
             scan_interval=scan_interval,
+            register_type=register_type,
         )
 
         # Initial data fetch - continue setup even if a device is temporarily offline

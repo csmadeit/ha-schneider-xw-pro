@@ -13,12 +13,23 @@ CONF_SLAVE_ID = "slave_id"
 CONF_DEVICE_TYPE = "device_type"
 CONF_DEVICE_NAME = "device_name"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_REGISTER_TYPE = "register_type"
 
 # Defaults
 DEFAULT_PORT = 503
 DEFAULT_SCAN_INTERVAL = 30
 DEFAULT_TIMEOUT = 15
 DEFAULT_DELAY = 2
+
+# Register type options for sensor reads
+REGISTER_TYPE_HOLDING = "holding"
+REGISTER_TYPE_INPUT = "input"
+DEFAULT_REGISTER_TYPE = REGISTER_TYPE_HOLDING
+
+REGISTER_TYPE_LABELS = {
+    REGISTER_TYPE_HOLDING: "Holding Registers (FC 0x03) — Stable",
+    REGISTER_TYPE_INPUT: "Input Registers (FC 0x04) — Experimental",
+}
 
 # Device types
 DEVICE_TYPE_XW_PRO = "xw_pro"
