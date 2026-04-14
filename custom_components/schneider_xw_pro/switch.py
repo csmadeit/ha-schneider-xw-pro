@@ -1,4 +1,4 @@
-"""Switch platform for Schneider Electric Conext XW Pro integration."""
+"""Switch platform for Smarter.Homes Schneider Conext Solar Integration."""
 
 from __future__ import annotations
 

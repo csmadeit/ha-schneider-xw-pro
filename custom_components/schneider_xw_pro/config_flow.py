@@ -1,4 +1,4 @@
-"""Config flow for Schneider Electric Conext XW Pro integration.
+"""Config flow for Smarter.Homes Schneider Conext Solar Integration.
 
 Supports two modes:
 1. Auto-discovery: Scans all known Modbus slave address ranges to find devices.

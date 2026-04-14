@@ -1,4 +1,4 @@
-"""Constants for the Schneider Electric Conext XW Pro integration."""
+"""Constants for the Smarter.Homes Schneider Conext Solar Integration."""
 
 from __future__ import annotations
 

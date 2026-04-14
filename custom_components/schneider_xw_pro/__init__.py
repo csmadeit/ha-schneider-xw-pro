@@ -1,4 +1,4 @@
-"""The Schneider Electric Conext XW Pro integration."""
+"""The Smarter.Homes Schneider Conext Solar Integration."""
 
 from __future__ import annotations
 

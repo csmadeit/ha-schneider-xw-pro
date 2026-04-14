@@ -1,17 +1,20 @@
-# Schneider Electric Conext XW Pro -- Home Assistant Integration
+# Smarter.Homes Schneider Conext Solar Integration
 
-A full HACS-compatible custom integration for the Schneider Electric Conext XW Pro solar inverter/charger ecosystem. Supports **read and write** Modbus TCP operations through the Conext Gateway / InsightHome / InsightFacility.
+A full HACS-compatible custom integration for the Schneider Electric Conext XW Pro solar inverter/charger ecosystem, by Smarter Homes LLC. Supports **read and write** Modbus TCP operations through the Conext Gateway / InsightHome / InsightFacility.
 
 **Status:** Register addresses verified against official Schneider Modbus specs. Device auto-discovery implemented. Ready for hardware testing.
 
 ---
 
-## Session Details
+## Screenshots
 
-- **Created by:** Chris S (@csmadeit) via Devin AI
-- **Session:** [Devin Session](https://app.devin.ai/sessions/4503fa9209474d858e2a17c069e0e1ef)
-- **Repository:** [gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro](https://gitlab.cmhtransfer.com/independent/ha-schneider-xw-pro)
-- **Date:** 2026-03-14 (initial), 2026-03-22 (register rewrite + auto-discovery)
+### Integration Discovery
+![Integration Discovery](docs/images/schneider_discovery.png)
+*Search for "Schneider" in the Add Integration dialog to find the Smarter.Homes Schneider Conext Solar Integration*
+
+### Configuration Flow
+![Config Flow](docs/images/schneider_config_flow.png)
+*Enter your Conext Gateway IP address and port — the integration auto-discovers all connected devices via Modbus TCP*
 
 ---
 
@@ -114,7 +117,7 @@ ha-schneider-xw-pro/
 1. Open HACS in Home Assistant
 2. Go to **Integrations** -> **Custom Repositories**
 3. Add this repository URL
-4. Install **Schneider Electric Conext XW Pro**
+4. Install **Smarter.Homes Schneider Conext Solar Integration**
 5. Restart Home Assistant
 
 ### Manual
@@ -123,7 +126,7 @@ ha-schneider-xw-pro/
 
 ### Configuration
 1. Go to **Settings** -> **Devices & Services** -> **Add Integration**
-2. Search for "Schneider Electric Conext XW Pro"
+2. Search for "Smarter.Homes Schneider Conext Solar Integration"
 3. Enter your Gateway/InsightHome IP and port (default: 503)
 4. The integration will auto-discover connected devices
 5. Confirm the discovered devices or manually add them

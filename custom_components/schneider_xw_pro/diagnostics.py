@@ -1,4 +1,4 @@
-"""Diagnostics support for Schneider Electric Conext XW Pro."""
+"""Diagnostics support for Smarter.Homes Schneider Conext Solar Integration."""
 
 from __future__ import annotations
 

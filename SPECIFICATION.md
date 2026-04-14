@@ -1,4 +1,4 @@
-# Schneider Electric Conext XW Pro -- HACS Integration Specification
+# Smarter.Homes Schneider Conext Solar Integration -- Specification
 
 ## Overview
 

@@ -99,6 +99,7 @@ HACS automatically detects new GitHub releases. Users will see the update in HAC
 | v1.3.0 | 2026-03-22 | Retry logic for grayed-out status entities |
 | v1.3.1 | 2026-03-22 | Block reads to reduce TCP connections from 117 to ~14 |
 | v1.3.2 | 2026-03-24 | Fix entity name duplication, reduce block size to 50, WARNING diagnostics |
+| v1.3.7 | 2026-04-05 | Add FC register type selector (Holding/Input) for sensor reads |
 
 ## HACS Custom Repository Setup (for users)
 
@@ -107,7 +108,7 @@ HACS automatically detects new GitHub releases. Users will see the update in HAC
 3. Add URL: `https://github.com/csmadeit/ha-schneider-xw-pro`
 4. Category: **Integration**
 5. Click **Add**
-6. Install **Schneider Electric Conext XW Pro**
+6. Install **Smarter.Homes Schneider Conext Solar Integration**
 7. Restart Home Assistant
 
 ## HACS Official Listing (future)

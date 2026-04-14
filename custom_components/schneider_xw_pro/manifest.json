@@ -1,6 +1,6 @@
 {
   "domain": "schneider_xw_pro",
-  "name": "Schneider Electric Conext XW Pro",
+  "name": "Smarter.Homes Schneider Conext Solar Integration",
   "codeowners": ["@csmadeit"],
   "config_flow": true,
   "dependencies": [],
